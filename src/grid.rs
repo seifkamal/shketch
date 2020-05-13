@@ -29,13 +29,19 @@ impl Point {
     }
 }
 
+impl Default for Point {
+    fn default() -> Self {
+        Self { x: 1, y: 1 }
+    }
+}
+
 impl PartialEq for Point {
     fn eq(&self, other: &Self) -> bool {
         (self.x == other.x) && (self.y == other.y)
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Cell {
     pos: Point,
     content: char,
@@ -66,7 +72,7 @@ pub fn clear_cell<W: Write>(mut cell: Cell, writer: &mut W) {
     write!(writer, "{}", cell).unwrap();
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Segment {
     cells: Vec<Cell>
 }
@@ -82,6 +88,12 @@ impl Segment {
 
     pub fn clear(&mut self) {
         self.cells.clear();
+    }
+}
+
+impl std::ops::AddAssign for Segment {
+    fn add_assign(&mut self, mut rhs: Self) {
+        self.cells.append(rhs.cells.as_mut())
     }
 }
 
@@ -140,7 +152,7 @@ impl Default for CharSet {
 }
 
 pub trait Connect {
-    fn connect(&self, segment: &Segment, point: &Point) -> Result<Segment, &str>;
+    fn connect(&self, from: &Point, to: &Point) -> Segment;
 }
 
 pub struct Tracer {
@@ -148,34 +160,29 @@ pub struct Tracer {
 }
 
 impl Connect for Tracer {
-    fn connect(&self, segment: &Segment, point: &Point) -> Result<Segment, &str> {
-        let cell = segment.cells.last();
-        if cell.is_none() {
-            return Err("Grid segment must contain at least one cell for a connection to be made");
-        }
+    fn connect(&self, from: &Point, to: &Point) -> Segment {
+        let mut segment = Segment::new();
+        let mut cursor = from.clone();
 
-        let mut cursor = cell.unwrap().pos().clone();
-        let mut new_segment = segment.clone();
-
-        while cursor != *point {
+        while cursor != *to {
             let current_pos = cursor.clone();
 
-            if cursor.y > point.y {
+            if cursor.y > to.y {
                 cursor = cursor.up();
-            } else if cursor.y < point.y {
+            } else if cursor.y < to.y {
                 cursor = cursor.down();
             }
 
-            if cursor.x > point.x {
+            if cursor.x > to.x {
                 cursor = cursor.left();
-            } else if cursor.x < point.x {
+            } else if cursor.x < to.x {
                 cursor = cursor.right();
             }
 
-            new_segment.add(Cell::new(cursor, self.char_set.next(&current_pos, &cursor)));
+            segment.add(Cell::new(cursor, self.char_set.next(&current_pos, &cursor)));
         }
 
-        Ok(new_segment)
+        segment
     }
 }
 

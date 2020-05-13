@@ -42,8 +42,11 @@ impl<W: Write> Frame<W> {
     pub fn undo(&mut self) {
         if let Some(segment) = self.segments.pop() {
             grid::clear_segment(segment, &mut self.writer);
-            self.writer.flush().unwrap();
         }
+    }
+
+    pub fn erase(&mut self, segment: grid::Segment) {
+        grid::clear_segment(segment, &mut self.writer);
     }
 
     pub fn clear(&mut self) {
