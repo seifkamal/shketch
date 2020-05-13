@@ -1,62 +1,67 @@
-pub mod paint;
+pub mod grid;
 
-use std::io::{Stdout, stdout, stdin, Write};
+use std::io::{stdout, Stdout, Write};
 use termion::{
     clear,
     cursor,
-    event::{Event, Key},
-    input::{MouseTerminal, TermRead},
-    raw::{IntoRawMode, RawTerminal},
-    screen::{AlternateScreen},
+    input::MouseTerminal,
+    screen::AlternateScreen,
+    raw::{RawTerminal, IntoRawMode},
 };
 
-pub struct Canvas<W: Write> {
-    writer: W
+#[derive(Debug, Clone)]
+pub struct Frame<W: Write> {
+    writer: W,
+    segments: Vec<grid::Segment>,
 }
 
-impl<W: Write> Canvas<W> {
-    pub fn new(writer: W) -> Self {
-        Self { writer }
+impl<W: Write> Frame<W> {
+    pub fn new(mut writer: W) -> Self {
+        write!(&mut writer, "{}{}", termion::clear::All, termion::cursor::Hide).unwrap();
+        writer.flush().unwrap();
+
+        Self { writer, segments: Vec::new() }
     }
 
-    pub fn start<B: paint::Brush>(&mut self, mut brush: B) {
-        for c in stdin().events() {
-            match c.unwrap() {
-                Event::Key(Key::Char('q')) => break,
-                Event::Key(Key::Char('k')) => self.clear(),
-                event => brush.paint(&mut self.writer, event)
-            }
+    pub fn print(&mut self) {
+        for segment in &self.segments {
+            write!(self.writer, "{}", segment).unwrap();
+        }
+        self.writer.flush().unwrap();
+    }
+
+    pub fn layer(&mut self, segment: &grid::Segment) {
+        write!(self.writer, "{}", segment).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn add(&mut self, segment: grid::Segment) {
+        self.segments.push(segment);
+    }
+
+    pub fn undo(&mut self) {
+        if let Some(segment) = self.segments.pop() {
+            grid::clear_segment(segment, &mut self.writer);
+            self.writer.flush().unwrap();
         }
     }
 
     pub fn clear(&mut self) {
-        write!(
-            self.writer,
-            "{}{}q to exit. k to clear.{}{}",
-            clear::All,
-            cursor::Goto(1, 1),
-            cursor::Goto(1, 2),
-            cursor::Hide
-        ).unwrap();
+        self.segments.clear();
+        write!(self.writer, "{}", clear::All).unwrap();
         self.writer.flush().unwrap();
     }
 }
 
-impl<W: Write> Drop for Canvas<W> {
+impl<W: Write> Drop for Frame<W> {
     fn drop(&mut self) {
-        writeln!(
-            self.writer,
-            "{}{}{}",
-            clear::All,
-            cursor::Goto(1, 1),
-            cursor::Show
-        ).unwrap();
+        write!(self.writer, "{}{}", clear::All, cursor::Show).unwrap();
     }
 }
 
 type AltMouseTerm = MouseTerminal<AlternateScreen<RawTerminal<Stdout>>>;
 
-impl Default for Canvas<AltMouseTerm> {
+impl Default for Frame<AltMouseTerm> {
     fn default() -> Self {
         let screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
         Self::new(MouseTerminal::from(screen))
