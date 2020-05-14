@@ -9,13 +9,26 @@ enum Tool {
     Ruler,
 }
 
+impl Default for Tool {
+    fn default() -> Self {
+        Tool::Brush
+    }
+}
+
 fn main() {
     let mut frame = ward::Frame::default();
-    let mut cursor = grid::Point::default();
-    let mut segment = grid::Segment::new();
-    let tracer = grid::Tracer::default();
+    let mut sketch = grid::Segment::new();
+    let mut toolbar = grid::Segment::new();
+    toolbar += grid::Segment::from_str(grid::Point::new(1, 1), "q - Exit");
+    toolbar += grid::Segment::from_str(grid::Point::new(20, 1), "k - Clear");
+    toolbar += grid::Segment::from_str(grid::Point::new(40, 1), "u - Undo");
+    toolbar += grid::Segment::from_str(grid::Point::new(1, 2), "1 - Brush");
+    toolbar += grid::Segment::from_str(grid::Point::new(20, 2), "2 - Ruler");
+    frame.layer(&toolbar);
 
-    let mut tool = Tool::Brush;
+    let tracer = grid::Tracer::default();
+    let mut cursor = grid::Point::default();
+    let mut tool = Tool::default();
 
     for c in stdin().events() {
         match c.unwrap() {
@@ -30,20 +43,25 @@ fn main() {
                         cursor = grid::Point::new(a, b);
                     }
                     MouseEvent::Hold(a, b) => {
+                        // Reserve toolbar space
+                        if b < 3 {
+                            continue;
+                        }
+
                         match tool {
                             Tool::Brush => {
-                                segment += tracer.connect(&cursor, &grid::Point::new(a, b));
+                                sketch += tracer.connect(&cursor, &grid::Point::new(a, b));
                                 cursor = grid::Point::new(a, b);
                             }
                             Tool::Ruler => {
-                                frame.erase(segment);
-                                segment = tracer.connect(&cursor, &grid::Point::new(a, b));
+                                frame.erase(sketch);
+                                sketch = tracer.connect(&cursor, &grid::Point::new(a, b));
                             }
                         }
                     }
                     MouseEvent::Release(_, _) => {
-                        frame.add(segment.clone());
-                        segment.clear();
+                        frame.add(sketch.clone());
+                        sketch.clear();
                     }
                 }
             }
@@ -51,6 +69,7 @@ fn main() {
         }
 
         frame.print();
-        frame.layer(&segment);
+        frame.layer(&sketch);
+        frame.layer(&toolbar);
     }
 }

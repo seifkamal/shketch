@@ -82,12 +82,29 @@ impl Segment {
         Self { cells: Vec::new() }
     }
 
+    pub fn from_str(start: Point, str: &str) -> Self {
+        let mut cells = Vec::new();
+        let mut cursor = start;
+        for char in str.as_bytes() {
+            cells.push(Cell::new(cursor.clone(), (*char) as char));
+            cursor = cursor.right();
+        }
+
+        Self { cells }
+    }
+
     pub fn add(&mut self, cell: Cell) {
         self.cells.push(cell);
     }
 
     pub fn clear(&mut self) {
         self.cells.clear();
+    }
+}
+
+impl From<Vec<Cell>> for Segment {
+    fn from(cells: Vec<Cell>) -> Self {
+        Self { cells }
     }
 }
 
