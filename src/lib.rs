@@ -1,13 +1,7 @@
 use std::fmt;
-use std::io::{stdout, Stdout, Write};
+use std::io::Write;
 
-use termion::{
-    clear,
-    cursor,
-    input::MouseTerminal,
-    screen::AlternateScreen,
-    raw::{RawTerminal, IntoRawMode},
-};
+use termion::{clear, cursor};
 
 #[derive(Debug, Copy, Clone, Eq, Hash)]
 pub struct Point {
@@ -71,7 +65,7 @@ impl Cell {
 
 impl fmt::Display for Cell {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\x1B[{};{}H{}", self.pos.y, self.pos.x, self.content)
+        write!(f, "{}{}", cursor::Goto(self.pos.x, self.pos.y), self.content)
     }
 }
 
@@ -266,15 +260,6 @@ impl<W: Write> Frame<W> {
 
 impl<W: Write> Drop for Frame<W> {
     fn drop(&mut self) {
-        write!(self.writer, "{}{}", clear::All, cursor::Show).unwrap();
-    }
-}
-
-type AltMouseTerm = MouseTerminal<AlternateScreen<RawTerminal<Stdout>>>;
-
-impl Default for Frame<AltMouseTerm> {
-    fn default() -> Self {
-        let screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
-        Self::new(MouseTerminal::from(screen))
+        write!(self.writer, "{}{}{}", clear::All, cursor::Goto(1, 1), cursor::Show).unwrap();
     }
 }
