@@ -56,12 +56,12 @@ fn main() {
 
                             match tool {
                                 Tool::Brush => {
-                                    sketch += tracer.connect(&cursor, &shketch::Point::new(a, b));
+                                    sketch += tracer.connect(cursor, shketch::Point::new(a, b));
                                     cursor = shketch::Point::new(a, b);
                                 }
                                 Tool::Ruler => {
                                     frame.erase(sketch);
-                                    sketch = tracer.connect(&cursor, &shketch::Point::new(a, b));
+                                    sketch = tracer.connect(cursor, shketch::Point::new(a, b));
                                 }
                             }
                         }

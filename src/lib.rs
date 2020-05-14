@@ -1,9 +1,10 @@
+use std::cmp;
 use std::fmt;
 use std::io::Write;
 
 use termion::{clear, cursor};
 
-#[derive(Debug, Copy, Clone, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point {
     x: u16,
     y: u16,
@@ -14,19 +15,19 @@ impl Point {
         Self { x, y }
     }
 
-    pub fn up(&self) -> Self {
+    pub fn up(self) -> Self {
         Self { x: self.x, y: self.y - 1 }
     }
 
-    pub fn down(&self) -> Self {
+    pub fn down(self) -> Self {
         Self { x: self.x, y: self.y + 1 }
     }
 
-    pub fn left(&self) -> Self {
+    pub fn left(self) -> Self {
         Self { x: self.x - 1, y: self.y }
     }
 
-    pub fn right(&self) -> Self {
+    pub fn right(self) -> Self {
         Self { x: self.x + 1, y: self.y }
     }
 }
@@ -34,12 +35,6 @@ impl Point {
 impl Default for Point {
     fn default() -> Self {
         Self { x: 1, y: 1 }
-    }
-}
-
-impl PartialEq for Point {
-    fn eq(&self, other: &Self) -> bool {
-        (self.x == other.x) && (self.y == other.y)
     }
 }
 
@@ -88,7 +83,7 @@ impl Segment {
         let mut cells = Vec::new();
         let mut cursor = start;
         for char in str.as_bytes() {
-            cells.push(Cell::new(cursor.clone(), (*char) as char));
+            cells.push(Cell::new(cursor, (*char) as char));
             cursor = cursor.right();
         }
 
@@ -143,8 +138,8 @@ pub struct CharSet {
 }
 
 impl CharSet {
-    pub fn next(&self, from: &Point, to: &Point) -> char {
-        return match *to {
+    pub fn next(&self, from: Point, to: Point) -> char {
+        match to {
             Point { x, y } if from.x == x && from.y < y => self.up,
             Point { x, y } if from.x == x && from.y > y => self.down,
             Point { x, y } if from.x < x && from.y == y => self.left,
@@ -152,7 +147,7 @@ impl CharSet {
             Point { x, y } if (from.x > x && from.y > y) || (from.x < x && from.y < y) => self.diagonal_back,
             Point { x, y } if (from.x > x && from.y < y) || (from.x < x && from.y > y) => self.diagonal_forward,
             _ => self.stationary,
-        };
+        }
     }
 }
 
@@ -171,7 +166,7 @@ impl Default for CharSet {
 }
 
 pub trait Connect {
-    fn connect(&self, from: &Point, to: &Point) -> Segment;
+    fn connect(&self, from: Point, to: Point) -> Segment;
 }
 
 pub struct Tracer {
@@ -179,26 +174,26 @@ pub struct Tracer {
 }
 
 impl Connect for Tracer {
-    fn connect(&self, from: &Point, to: &Point) -> Segment {
+    fn connect(&self, from: Point, to: Point) -> Segment {
         let mut segment = Segment::new();
-        let mut cursor = from.clone();
+        let mut cursor = from;
 
-        while cursor != *to {
-            let current_pos = cursor.clone();
+        while cursor != to {
+            let current_pos = cursor;
 
-            if cursor.y > to.y {
-                cursor = cursor.up();
-            } else if cursor.y < to.y {
-                cursor = cursor.down();
-            }
+            cursor = match cursor.y.cmp(&to.y) {
+                cmp::Ordering::Greater => cursor.up(),
+                cmp::Ordering::Less => cursor.down(),
+                _ => cursor,
+            };
 
-            if cursor.x > to.x {
-                cursor = cursor.left();
-            } else if cursor.x < to.x {
-                cursor = cursor.right();
-            }
+            cursor = match cursor.x.cmp(&to.x) {
+                cmp::Ordering::Greater => cursor.left(),
+                cmp::Ordering::Less => cursor.right(),
+                _ => cursor,
+            };
 
-            segment.add(Cell::new(cursor, self.char_set.next(&current_pos, &cursor)));
+            segment.add(Cell::new(cursor, self.char_set.next(current_pos, cursor)));
         }
 
         segment
