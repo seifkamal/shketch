@@ -1,82 +1,49 @@
 use std::io::{stdin, stdout};
 
-use termion::event::{Event, Key, MouseEvent};
+use termion::event::{Event, Key};
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 
-use shketch::{self, Connect};
-
-enum Tool {
-    Brush,
-    Ruler,
-}
-
-impl Default for Tool {
-    fn default() -> Self {
-        Tool::Brush
-    }
-}
+use shketch::{grid, Canvas};
 
 fn main() {
-    let screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
-    let mut frame = shketch::Frame::new(MouseTerminal::from(screen));
+    let output;
 
     {
-        let mut toolbar = shketch::Segment::new();
-        toolbar += shketch::Segment::from_str(shketch::Point::new(1, 1), "q - Exit");
-        toolbar += shketch::Segment::from_str(shketch::Point::new(20, 1), "k - Clear");
-        toolbar += shketch::Segment::from_str(shketch::Point::new(40, 1), "u - Undo");
-        toolbar += shketch::Segment::from_str(shketch::Point::new(1, 2), "1 - Brush");
-        toolbar += shketch::Segment::from_str(shketch::Point::new(20, 2), "2 - Ruler");
-        frame.layer(&toolbar);
+        let screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+        let mut canvas = Canvas::new(MouseTerminal::from(screen), grid::Tracer::default());
 
-        let tracer = shketch::Tracer::default();
-        let mut sketch = shketch::Segment::new();
-        let mut cursor = shketch::Point::default();
-        let mut tool = Tool::default();
+        canvas.pin(toolbar());
+        canvas.draw();
 
         for c in stdin().events() {
             match c.unwrap() {
                 Event::Key(Key::Char('q')) => break,
-                Event::Key(Key::Char('k')) => frame.clear(),
-                Event::Key(Key::Char('u')) => frame.undo(),
-                Event::Key(Key::Char('1')) => tool = Tool::Brush,
-                Event::Key(Key::Char('2')) => tool = Tool::Ruler,
-                Event::Mouse(mouse_event) => {
-                    match mouse_event {
-                        MouseEvent::Press(_, a, b) => {
-                            cursor = shketch::Point::new(a, b);
-                        }
-                        MouseEvent::Hold(a, b) => {
-                            // Reserve toolbar space
-                            if b < 3 {
-                                continue;
-                            }
-
-                            match tool {
-                                Tool::Brush => {
-                                    sketch += tracer.connect(cursor, shketch::Point::new(a, b));
-                                    cursor = shketch::Point::new(a, b);
-                                }
-                                Tool::Ruler => {
-                                    frame.erase(sketch);
-                                    sketch = tracer.connect(cursor, shketch::Point::new(a, b));
-                                }
-                            }
-                        }
-                        MouseEvent::Release(_, _) => {
-                            frame.add(sketch.clone());
-                            sketch.clear();
-                        }
-                    }
-                }
+                Event::Key(Key::Char('k')) => canvas.clear(),
+                Event::Key(Key::Char('u')) => canvas.undo(),
+                Event::Key(Key::Char(n)) if n.is_digit(10) => canvas.alt_style(n.into()),
+                Event::Mouse(mouse_event) => canvas.update(mouse_event),
                 _ => {}
             }
 
-            frame.print();
-            frame.layer(&sketch);
-            frame.layer(&toolbar);
+            canvas.draw();
         }
+
+        output = canvas.snapshot();
     }
+
+    println!("{:?}", output);
+}
+
+fn toolbar() -> grid::Segment {
+    let item = |x, y, text| grid::Segment::from_str(grid::Point::new(x, y), text);
+
+    let mut toolbar = grid::Segment::new();
+    toolbar += item(1, 1, "q - Exit");
+    toolbar += item(20, 1, "k - Clear");
+    toolbar += item(40, 1, "u - Undo");
+    toolbar += item(1, 2, "1 - Brush");
+    toolbar += item(20, 2, "2 - Ruler");
+    toolbar
 }
