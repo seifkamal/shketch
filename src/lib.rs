@@ -16,19 +16,31 @@ impl Point {
     }
 
     pub fn up(self) -> Self {
-        Self { x: self.x, y: self.y - 1 }
+        Self {
+            x: self.x,
+            y: self.y - 1,
+        }
     }
 
     pub fn down(self) -> Self {
-        Self { x: self.x, y: self.y + 1 }
+        Self {
+            x: self.x,
+            y: self.y + 1,
+        }
     }
 
     pub fn left(self) -> Self {
-        Self { x: self.x - 1, y: self.y }
+        Self {
+            x: self.x - 1,
+            y: self.y,
+        }
     }
 
     pub fn right(self) -> Self {
-        Self { x: self.x + 1, y: self.y }
+        Self {
+            x: self.x + 1,
+            y: self.y,
+        }
     }
 }
 
@@ -60,7 +72,12 @@ impl Cell {
 
 impl fmt::Display for Cell {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", cursor::Goto(self.pos.x, self.pos.y), self.content)
+        write!(
+            f,
+            "{}{}",
+            cursor::Goto(self.pos.x, self.pos.y),
+            self.content
+        )
     }
 }
 
@@ -71,7 +88,7 @@ pub fn clear_cell<W: Write>(mut cell: Cell, writer: &mut W) {
 
 #[derive(Debug, Default, Clone)]
 pub struct Segment {
-    cells: Vec<Cell>
+    cells: Vec<Cell>,
 }
 
 impl Segment {
@@ -144,8 +161,12 @@ impl CharSet {
             Point { x, y } if from.x == x && from.y > y => self.down,
             Point { x, y } if from.x < x && from.y == y => self.left,
             Point { x, y } if from.x > x && from.y == y => self.right,
-            Point { x, y } if (from.x > x && from.y > y) || (from.x < x && from.y < y) => self.diagonal_back,
-            Point { x, y } if (from.x > x && from.y < y) || (from.x < x && from.y > y) => self.diagonal_forward,
+            Point { x, y } if (from.x > x && from.y > y) || (from.x < x && from.y < y) => {
+                self.diagonal_back
+            }
+            Point { x, y } if (from.x > x && from.y < y) || (from.x < x && from.y > y) => {
+                self.diagonal_forward
+            }
             _ => self.stationary,
         }
     }
@@ -170,7 +191,7 @@ pub trait Connect {
 }
 
 pub struct Tracer {
-    char_set: CharSet
+    char_set: CharSet,
 }
 
 impl Connect for Tracer {
@@ -202,7 +223,9 @@ impl Connect for Tracer {
 
 impl Default for Tracer {
     fn default() -> Self {
-        Self { char_set: CharSet::default() }
+        Self {
+            char_set: CharSet::default(),
+        }
     }
 }
 
@@ -214,10 +237,19 @@ pub struct Frame<W: Write> {
 
 impl<W: Write> Frame<W> {
     pub fn new(mut writer: W) -> Self {
-        write!(&mut writer, "{}{}", termion::clear::All, termion::cursor::Hide).unwrap();
+        write!(
+            &mut writer,
+            "{}{}",
+            termion::clear::All,
+            termion::cursor::Hide
+        )
+        .unwrap();
         writer.flush().unwrap();
 
-        Self { writer, segments: Vec::new() }
+        Self {
+            writer,
+            segments: Vec::new(),
+        }
     }
 
     pub fn print(&mut self) {
@@ -255,6 +287,13 @@ impl<W: Write> Frame<W> {
 
 impl<W: Write> Drop for Frame<W> {
     fn drop(&mut self) {
-        write!(self.writer, "{}{}{}", clear::All, cursor::Goto(1, 1), cursor::Show).unwrap();
+        write!(
+            self.writer,
+            "{}{}{}",
+            clear::All,
+            cursor::Goto(1, 1),
+            cursor::Show
+        )
+        .unwrap();
     }
 }

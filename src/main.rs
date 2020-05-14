@@ -1,6 +1,6 @@
 use std::io::{stdin, stdout};
 
-use termion::event::{Key, Event, MouseEvent};
+use termion::event::{Event, Key, MouseEvent};
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
