@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::io::{stdin, stdout};
 
 use termion::event::{Event, Key};
@@ -5,10 +6,10 @@ use termion::input::{MouseTerminal, TermRead};
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 
-use shketch::{grid, Canvas};
+use shketch::{export, grid, Canvas};
 
 fn main() {
-    let output;
+    let design;
 
     {
         let screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
@@ -30,10 +31,11 @@ fn main() {
             canvas.draw();
         }
 
-        output = canvas.snapshot();
+        design = canvas.snapshot();
     }
 
-    println!("{:?}", output);
+    let blueprint: Result<export::BluePrint, _> = design.try_into();
+    println!("{}", blueprint.expect("Could not export design"));
 }
 
 fn toolbar() -> grid::Segment {

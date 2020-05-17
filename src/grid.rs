@@ -13,37 +13,33 @@ impl Point {
         Self { x, y }
     }
 
+    pub fn x(self) -> u16 {
+        self.x
+    }
+
+    pub fn y(self) -> u16 {
+        self.y
+    }
+
     pub fn move_to(&mut self, x: u16, y: u16) {
         self.x = x;
         self.y = y;
     }
 
-    pub fn up(self) -> Self {
-        Self {
-            x: self.x,
-            y: self.y - 1,
-        }
+    pub fn move_up(&mut self) {
+        self.y -= 1;
     }
 
-    pub fn down(self) -> Self {
-        Self {
-            x: self.x,
-            y: self.y + 1,
-        }
+    pub fn move_down(&mut self) {
+        self.y += 1;
     }
 
-    pub fn left(self) -> Self {
-        Self {
-            x: self.x - 1,
-            y: self.y,
-        }
+    pub fn move_left(&mut self) {
+        self.x -= 1;
     }
 
-    pub fn right(self) -> Self {
-        Self {
-            x: self.x + 1,
-            y: self.y,
-        }
+    pub fn move_right(&mut self) {
+        self.x += 1;
     }
 }
 
@@ -68,8 +64,8 @@ impl Cell {
         &self.pos
     }
 
-    pub fn content(&self) -> &char {
-        &self.content
+    pub fn content(self) -> char {
+        self.content
     }
 }
 
@@ -99,7 +95,7 @@ impl Segment {
         let mut cursor = start;
         for char in str.as_bytes() {
             cells.push(Cell::new(cursor, (*char) as char));
-            cursor = cursor.right();
+            cursor.move_right();
         }
 
         Self { cells }
@@ -117,6 +113,23 @@ impl Segment {
 impl From<Vec<Cell>> for Segment {
     fn from(cells: Vec<Cell>) -> Self {
         Self { cells }
+    }
+}
+
+impl From<Segment> for Vec<Cell> {
+    fn from(segment: Segment) -> Self {
+        segment.cells
+    }
+}
+
+impl<'a> std::iter::Sum<&'a Segment> for Segment {
+    fn sum<I: Iterator<Item=&'a Segment>>(iter: I) -> Self {
+        let mut result = Segment::new();
+        for segment in iter {
+            result += segment.clone()
+        }
+
+        result
     }
 }
 
@@ -200,16 +213,16 @@ impl Connect for Tracer {
         while cursor != to {
             let current_pos = cursor;
 
-            cursor = match cursor.y.cmp(&to.y) {
-                cmp::Ordering::Greater => cursor.up(),
-                cmp::Ordering::Less => cursor.down(),
-                _ => cursor,
+            match cursor.y.cmp(&to.y) {
+                cmp::Ordering::Greater => cursor.move_up(),
+                cmp::Ordering::Less => cursor.move_down(),
+                _ => {},
             };
 
-            cursor = match cursor.x.cmp(&to.x) {
-                cmp::Ordering::Greater => cursor.left(),
-                cmp::Ordering::Less => cursor.right(),
-                _ => cursor,
+            match cursor.x.cmp(&to.x) {
+                cmp::Ordering::Greater => cursor.move_left(),
+                cmp::Ordering::Less => cursor.move_right(),
+                _ => {},
             };
 
             segment.add(Cell::new(cursor, self.char_set.next(current_pos, cursor)));
