@@ -123,7 +123,7 @@ impl From<Segment> for Vec<Cell> {
 }
 
 impl<'a> std::iter::Sum<&'a Segment> for Segment {
-    fn sum<I: Iterator<Item=&'a Segment>>(iter: I) -> Self {
+    fn sum<I: Iterator<Item = &'a Segment>>(iter: I) -> Self {
         let mut result = Segment::new();
         for segment in iter {
             result += segment.clone()
@@ -216,13 +216,13 @@ impl Connect for Tracer {
             match cursor.y.cmp(&to.y) {
                 cmp::Ordering::Greater => cursor.move_up(),
                 cmp::Ordering::Less => cursor.move_down(),
-                _ => {},
+                _ => {}
             };
 
             match cursor.x.cmp(&to.x) {
                 cmp::Ordering::Greater => cursor.move_left(),
                 cmp::Ordering::Less => cursor.move_right(),
-                _ => {},
+                _ => {}
             };
 
             segment.add(Cell::new(cursor, self.char_set.next(current_pos, cursor)));

@@ -1,5 +1,5 @@
 pub mod canvas;
-pub mod grid;
 pub mod export;
+pub mod grid;
 
 pub use canvas::Canvas;

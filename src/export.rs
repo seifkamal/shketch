@@ -1,5 +1,9 @@
 use std::convert;
 use std::fmt;
+use std::fs;
+use std::io::Write;
+use std::path;
+use std::time;
 
 use crate::grid;
 
@@ -11,10 +15,7 @@ pub struct BluePrint {
 
 impl BluePrint {
     fn new(boundaries: (grid::Point, grid::Point), cells: Vec<grid::Cell>) -> Self {
-        Self {
-            boundaries,
-            cells
-        }
+        Self { boundaries, cells }
     }
 }
 
@@ -72,4 +73,20 @@ impl fmt::Display for BluePrint {
         let output: String = self.into();
         write!(f, "{}", output)
     }
+}
+
+type SaveResult<T> = Result<T, Box<dyn std::error::Error>>;
+
+pub fn save(blueprint: &BluePrint) -> SaveResult<String> {
+    let time = time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH)?;
+    let file_name = format!("shketch-{}", time.as_millis());
+    save_as(blueprint, &file_name)?;
+    Ok(file_name)
+}
+
+pub fn save_as(blueprint: &BluePrint, file_name: &str) -> SaveResult<()> {
+    let path = path::Path::new(&file_name);
+    let mut file = fs::File::create(path)?;
+    file.write_all(blueprint.to_string().as_bytes())?;
+    Ok(())
 }

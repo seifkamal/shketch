@@ -9,33 +9,35 @@ use termion::screen::AlternateScreen;
 use shketch::{export, grid, Canvas};
 
 fn main() {
-    let design;
+    let screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+    let mut canvas = Canvas::new(MouseTerminal::from(screen), grid::Tracer::default());
 
-    {
-        let screen = AlternateScreen::from(stdout().into_raw_mode().unwrap());
-        let mut canvas = Canvas::new(MouseTerminal::from(screen), grid::Tracer::default());
+    canvas.pin(toolbar());
+    canvas.draw();
 
-        canvas.pin(toolbar());
-        canvas.draw();
+    let mut save_file_name: Option<String> = None;
 
-        for c in stdin().events() {
-            match c.unwrap() {
-                Event::Key(Key::Char('q')) => break,
-                Event::Key(Key::Char('k')) => canvas.clear(),
-                Event::Key(Key::Char('u')) => canvas.undo(),
-                Event::Key(Key::Char(n)) if n.is_digit(10) => canvas.alt_style(n.into()),
-                Event::Mouse(mouse_event) => canvas.update(mouse_event),
-                _ => {}
+    for c in stdin().events() {
+        match c.unwrap() {
+            Event::Key(Key::Char('q')) => break,
+            Event::Key(Key::Ctrl('s')) => {
+                let blueprint: Result<export::BluePrint, _> = canvas.snapshot().try_into();
+                if let Some(name) = &save_file_name {
+                    export::save_as(&blueprint.expect("Parse design"), &name).expect("Save design");
+                } else {
+                    save_file_name =
+                        Some(export::save(&blueprint.expect("Parse design")).expect("Save design"));
+                }
             }
-
-            canvas.draw();
+            Event::Key(Key::Char('k')) => canvas.clear(),
+            Event::Key(Key::Char('u')) => canvas.undo(),
+            Event::Key(Key::Char(n)) if n.is_digit(10) => canvas.alt_style(n.into()),
+            Event::Mouse(mouse_event) => canvas.update(mouse_event),
+            _ => {}
         }
 
-        design = canvas.snapshot();
+        canvas.draw();
     }
-
-    let blueprint: Result<export::BluePrint, _> = design.try_into();
-    println!("{}", blueprint.expect("Could not export design"));
 }
 
 fn toolbar() -> grid::Segment {
@@ -43,9 +45,11 @@ fn toolbar() -> grid::Segment {
 
     let mut toolbar = grid::Segment::new();
     toolbar += item(1, 1, "q - Exit");
-    toolbar += item(20, 1, "k - Clear");
-    toolbar += item(40, 1, "u - Undo");
+    toolbar += item(15, 1, "k - Clear");
+    toolbar += item(30, 1, "u - Undo");
+    toolbar += item(45, 1, "ctrl+s - Save");
+
     toolbar += item(1, 2, "1 - Brush");
-    toolbar += item(20, 2, "2 - Ruler");
+    toolbar += item(15, 2, "2 - Ruler");
     toolbar
 }
