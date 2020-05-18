@@ -1,10 +1,53 @@
-use std::io::Write;
+use std::error;
+use std::fmt;
+use std::io::{self, Write};
+use std::result;
 
 use termion::clear;
 use termion::cursor;
 use termion::event::MouseEvent;
 
 use crate::grid::{self, Connect};
+
+type Result = result::Result<(), Error>;
+
+#[derive(Debug)]
+pub enum Error {
+    Fmt(fmt::Error),
+    Io(io::Error),
+}
+
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Error::Fmt(e) => Some(e),
+            Error::Io(e) => Some(e),
+        }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = match self {
+            Error::Fmt(_) => "failed to format message to stream",
+            Error::Io(_) => "failed to perform I/O operation",
+        };
+
+        write!(f, "{}", msg)
+    }
+}
+
+impl From<fmt::Error> for Error {
+    fn from(fmt_error: fmt::Error) -> Self {
+        Error::Fmt(fmt_error)
+    }
+}
+
+impl From<io::Error> for Error {
+    fn from(io_error: io::Error) -> Self {
+        Error::Io(io_error)
+    }
+}
 
 pub enum Style {
     Plot,
@@ -47,10 +90,7 @@ where
 {
     const TOOLBAR_DIVIDER: u16 = 3;
 
-    pub fn new(mut writer: W, brush: B) -> Self {
-        write!(&mut writer, "{}{}", clear::All, cursor::Hide).unwrap();
-        writer.flush().unwrap();
-
+    pub fn new(writer: W, brush: B) -> Self {
         Self {
             writer,
             brush,
@@ -62,6 +102,12 @@ where
         }
     }
 
+    pub fn init(&mut self) -> Result {
+        write!(self.writer, "{}{}", clear::All, cursor::Hide)?;
+        self.writer.flush()?;
+        Ok(())
+    }
+
     pub fn pin(&mut self, overlay: grid::Segment) {
         self.overlay = overlay;
     }
@@ -70,13 +116,13 @@ where
         self.style = style;
     }
 
-    pub fn update(&mut self, mouse_event: MouseEvent) {
+    pub fn update(&mut self, mouse_event: MouseEvent) -> Result {
         match mouse_event {
             MouseEvent::Press(_, a, b) => self.cursor.move_to(a, b),
             MouseEvent::Hold(a, b) => {
                 // Reserve toolbar space
                 if b < Self::TOOLBAR_DIVIDER {
-                    return;
+                    return Ok(());
                 }
 
                 match self.style {
@@ -85,7 +131,7 @@ where
                         self.cursor.move_to(a, b);
                     }
                     Style::Line => {
-                        grid::clear_segment(self.sketch.clone(), &mut self.writer);
+                        grid::clear_segment(self.sketch.clone(), &mut self.writer)?;
                         self.sketch = self.brush.connect(self.cursor, grid::Point::new(a, b));
                     }
                 }
@@ -95,27 +141,30 @@ where
                 self.sketch.clear();
             }
         }
+        Ok(())
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self) -> Result {
         for segment in &self.base {
-            write!(self.writer, "{}", segment).unwrap();
+            write!(self.writer, "{}", segment)?;
         }
-        write!(self.writer, "{}{}", self.sketch, self.overlay).unwrap();
-        self.writer.flush().unwrap();
+        write!(self.writer, "{}{}", self.sketch, self.overlay)?;
+        self.writer.flush()?;
+        Ok(())
     }
 
     pub fn snapshot(&self) -> Vec<grid::Segment> {
         self.base.clone()
     }
 
-    pub fn undo(&mut self) {
+    pub fn undo(&mut self) -> Result {
         if let Some(segment) = self.base.pop() {
-            grid::clear_segment(segment, &mut self.writer);
+            grid::clear_segment(segment, &mut self.writer)?;
         }
+        Ok(())
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> Result {
         self.base.clear();
         self.sketch.clear();
 
@@ -124,9 +173,9 @@ where
             "{}{}",
             cursor::Goto(1, Self::TOOLBAR_DIVIDER),
             clear::All
-        )
-        .unwrap();
-        self.writer.flush().unwrap();
+        )?;
+        self.writer.flush()?;
+        Ok(())
     }
 }
 
@@ -143,6 +192,6 @@ where
             cursor::Goto(1, 1),
             cursor::Show
         )
-        .unwrap();
+        .expect("Clear canvas before dropping");
     }
 }

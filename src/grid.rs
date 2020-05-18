@@ -1,6 +1,6 @@
 use std::cmp;
 use std::fmt;
-use std::io::Write;
+use std::io::{self, Write};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point {
@@ -75,9 +75,9 @@ impl fmt::Display for Cell {
     }
 }
 
-pub fn clear_cell<W: Write>(mut cell: Cell, writer: &mut W) {
+pub fn clear_cell<W: Write>(mut cell: Cell, writer: &mut W) -> io::Result<()> {
     cell.content = ' ';
-    write!(writer, "{}", cell).unwrap();
+    write!(writer, "{}", cell)
 }
 
 #[derive(Debug, Default, Clone)]
@@ -148,10 +148,11 @@ impl fmt::Display for Segment {
     }
 }
 
-pub fn clear_segment<W: Write>(segment: Segment, writer: &mut W) {
+pub fn clear_segment<W: Write>(segment: Segment, writer: &mut W) -> io::Result<()> {
     for cell in segment.cells {
-        clear_cell(cell, writer);
+        clear_cell(cell, writer)?;
     }
+    Ok(())
 }
 
 #[derive(Debug)]
@@ -205,6 +206,14 @@ pub struct Tracer {
     char_set: CharSet,
 }
 
+impl Default for Tracer {
+    fn default() -> Self {
+        Self {
+            char_set: CharSet::default(),
+        }
+    }
+}
+
 impl Connect for Tracer {
     fn connect(&self, from: Point, to: Point) -> Segment {
         let mut segment = Segment::new();
@@ -229,13 +238,5 @@ impl Connect for Tracer {
         }
 
         segment
-    }
-}
-
-impl Default for Tracer {
-    fn default() -> Self {
-        Self {
-            char_set: CharSet::default(),
-        }
     }
 }

@@ -1,11 +1,29 @@
 use std::convert;
+use std::error;
 use std::fmt;
 use std::fs;
-use std::io::Write;
+use std::io::{self, Write};
 use std::path;
 use std::time;
 
 use crate::grid;
+
+#[derive(Debug)]
+pub enum ParseError {
+    EmptyDesign,
+}
+
+impl error::Error for ParseError {}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = match self {
+            ParseError::EmptyDesign => "Design is empty",
+        };
+
+        write!(f, "{}", msg)
+    }
+}
 
 #[derive(Debug)]
 pub struct BluePrint {
@@ -20,23 +38,39 @@ impl BluePrint {
 }
 
 impl convert::TryFrom<Vec<grid::Segment>> for BluePrint {
-    type Error = &'static str;
+    type Error = ParseError;
 
     fn try_from(design: Vec<grid::Segment>) -> Result<Self, Self::Error> {
         if design.is_empty() {
-            return Err("Design is empty");
+            return Err(ParseError::EmptyDesign);
         }
 
         let unified_segment: grid::Segment = design.iter().sum();
         let cells: Vec<grid::Cell> = unified_segment.into();
         let boundaries = (
             grid::Point::new(
-                cells.iter().map(|cell| cell.pos().x()).min().unwrap(),
-                cells.iter().map(|cell| cell.pos().y()).min().unwrap(),
+                cells
+                    .iter()
+                    .map(|cell| cell.pos().x())
+                    .min()
+                    .expect("Find min x"),
+                cells
+                    .iter()
+                    .map(|cell| cell.pos().y())
+                    .min()
+                    .expect("Find min y"),
             ),
             grid::Point::new(
-                cells.iter().map(|cell| cell.pos().x()).max().unwrap(),
-                cells.iter().map(|cell| cell.pos().y()).max().unwrap(),
+                cells
+                    .iter()
+                    .map(|cell| cell.pos().x())
+                    .max()
+                    .expect("Find max x"),
+                cells
+                    .iter()
+                    .map(|cell| cell.pos().y())
+                    .max()
+                    .expect("Find max y"),
             ),
         );
 
@@ -75,7 +109,38 @@ impl fmt::Display for BluePrint {
     }
 }
 
-type SaveResult<T> = Result<T, Box<dyn std::error::Error>>;
+type SaveResult<T> = Result<T, SaveError>;
+
+#[derive(Debug)]
+pub enum SaveError {
+    Io(io::Error),
+    SystemTime(time::SystemTimeError),
+}
+
+impl error::Error for SaveError {}
+
+impl fmt::Display for SaveError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let msg = match self {
+            SaveError::Io(_) => "failed to perform I/O operation",
+            SaveError::SystemTime(_) => "could not get current system time",
+        };
+
+        write!(f, "Could not save design: {}", msg)
+    }
+}
+
+impl From<io::Error> for SaveError {
+    fn from(io_error: io::Error) -> Self {
+        SaveError::Io(io_error)
+    }
+}
+
+impl From<time::SystemTimeError> for SaveError {
+    fn from(sys_time_error: time::SystemTimeError) -> Self {
+        SaveError::SystemTime(sys_time_error)
+    }
+}
 
 pub fn save(blueprint: &BluePrint) -> SaveResult<String> {
     let time = time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH)?;
