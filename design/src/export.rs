@@ -115,7 +115,14 @@ pub enum SaveError {
     SystemTime(time::SystemTimeError),
 }
 
-impl error::Error for SaveError {}
+impl error::Error for SaveError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            SaveError::Io(e) => Some(e),
+            SaveError::SystemTime(e) => Some(e),
+        }
+    }
+}
 
 impl fmt::Display for SaveError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

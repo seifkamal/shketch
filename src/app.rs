@@ -17,7 +17,17 @@ pub(crate) enum Error {
     Save(design::SaveError),
 }
 
-impl error::Error for Error {}
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            Error::NotTTY => None,
+            Error::Io(e) => Some(e),
+            Error::Update(e) => Some(e),
+            Error::Parse(e) => Some(e),
+            Error::Save(e) => Some(e),
+        }
+    }
+}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -33,15 +43,15 @@ impl fmt::Display for Error {
     }
 }
 
-impl From<design::UpdateError> for Error {
-    fn from(canvas_error: design::UpdateError) -> Self {
-        Error::Update(canvas_error)
-    }
-}
-
 impl From<io::Error> for Error {
     fn from(io_error: io::Error) -> Self {
         Error::Io(io_error)
+    }
+}
+
+impl From<design::UpdateError> for Error {
+    fn from(canvas_error: design::UpdateError) -> Self {
+        Error::Update(canvas_error)
     }
 }
 

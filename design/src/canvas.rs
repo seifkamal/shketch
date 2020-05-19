@@ -70,9 +70,9 @@ impl Default for Style {
 }
 
 pub struct Canvas<W, B>
-    where
-        W: Write,
-        B: Connect,
+where
+    W: Write,
+    B: Connect,
 {
     writer: W,
     brush: B,
@@ -84,9 +84,9 @@ pub struct Canvas<W, B>
 }
 
 impl<W, B> Canvas<W, B>
-    where
-        W: Write,
-        B: Connect,
+where
+    W: Write,
+    B: Connect,
 {
     const TOOLBAR_DIVIDER: u16 = 3;
 
@@ -180,9 +180,9 @@ impl<W, B> Canvas<W, B>
 }
 
 impl<W, B> Drop for Canvas<W, B>
-    where
-        W: Write,
-        B: Connect,
+where
+    W: Write,
+    B: Connect,
 {
     fn drop(&mut self) {
         write!(
@@ -192,6 +192,6 @@ impl<W, B> Drop for Canvas<W, B>
             cursor::Goto(1, 1),
             cursor::Show
         )
-            .expect("Clear canvas before dropping");
+        .expect("Clear canvas before dropping");
     }
 }
