@@ -1,2 +1,8 @@
+# Tools
 /.idea
+
+# Build
 /target
+
+# Application output
+shketch-*
