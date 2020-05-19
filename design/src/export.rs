@@ -6,8 +6,6 @@ use std::io::{self, Write};
 use std::path;
 use std::time;
 
-use crate::grid;
-
 #[derive(Debug)]
 pub enum ParseError {
     EmptyDesign,

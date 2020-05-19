@@ -7,45 +7,45 @@ use termion::clear;
 use termion::cursor;
 use termion::event::MouseEvent;
 
-use crate::grid::{self, Connect};
+use grid::Connect;
 
-type Result = result::Result<(), Error>;
+type Result = result::Result<(), UpdateError>;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum UpdateError {
     Fmt(fmt::Error),
     Io(io::Error),
 }
 
-impl error::Error for Error {
+impl error::Error for UpdateError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            Error::Fmt(e) => Some(e),
-            Error::Io(e) => Some(e),
+            UpdateError::Fmt(e) => Some(e),
+            UpdateError::Io(e) => Some(e),
         }
     }
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for UpdateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let msg = match self {
-            Error::Fmt(_) => "failed to format message to stream",
-            Error::Io(_) => "failed to perform I/O operation",
+            UpdateError::Fmt(_) => "failed to format message to stream",
+            UpdateError::Io(_) => "failed to perform I/O operation",
         };
 
         write!(f, "{}", msg)
     }
 }
 
-impl From<fmt::Error> for Error {
+impl From<fmt::Error> for UpdateError {
     fn from(fmt_error: fmt::Error) -> Self {
-        Error::Fmt(fmt_error)
+        UpdateError::Fmt(fmt_error)
     }
 }
 
-impl From<io::Error> for Error {
+impl From<io::Error> for UpdateError {
     fn from(io_error: io::Error) -> Self {
-        Error::Io(io_error)
+        UpdateError::Io(io_error)
     }
 }
 
@@ -70,9 +70,9 @@ impl Default for Style {
 }
 
 pub struct Canvas<W, B>
-where
-    W: Write,
-    B: Connect,
+    where
+        W: Write,
+        B: Connect,
 {
     writer: W,
     brush: B,
@@ -84,9 +84,9 @@ where
 }
 
 impl<W, B> Canvas<W, B>
-where
-    W: Write,
-    B: Connect,
+    where
+        W: Write,
+        B: Connect,
 {
     const TOOLBAR_DIVIDER: u16 = 3;
 
@@ -180,9 +180,9 @@ where
 }
 
 impl<W, B> Drop for Canvas<W, B>
-where
-    W: Write,
-    B: Connect,
+    where
+        W: Write,
+        B: Connect,
 {
     fn drop(&mut self) {
         write!(
@@ -192,6 +192,6 @@ where
             cursor::Goto(1, 1),
             cursor::Show
         )
-        .expect("Clear canvas before dropping");
+            .expect("Clear canvas before dropping");
     }
 }

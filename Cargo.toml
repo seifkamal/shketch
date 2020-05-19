@@ -6,3 +6,12 @@ edition = "2018"
 
 [dependencies]
 termion = "~1.5.5"
+design = { path = "design" }
+grid = { path = "grid" }
+
+[workspace]
+members = [
+    ".",
+    "design",
+    "grid",
+]
