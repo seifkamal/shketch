@@ -7,7 +7,7 @@ use termion::clear;
 use termion::cursor;
 use termion::event::MouseEvent;
 
-use grid::Connect;
+use grid::{Connect, Erase};
 
 type Result = result::Result<(), UpdateError>;
 
@@ -131,7 +131,7 @@ where
                         self.cursor.move_to(a, b);
                     }
                     Style::Line => {
-                        grid::clear_segment(self.sketch.clone(), &mut self.writer)?;
+                        self.sketch.erase(&mut self.writer)?;
                         self.sketch = self.brush.connect(self.cursor, grid::Point::new(a, b));
                     }
                 }
@@ -158,8 +158,8 @@ where
     }
 
     pub fn undo(&mut self) -> Result {
-        if let Some(segment) = self.base.pop() {
-            grid::clear_segment(segment, &mut self.writer)?;
+        if let Some(mut segment) = self.base.pop() {
+            segment.erase(&mut self.writer)?;
         }
         Ok(())
     }
