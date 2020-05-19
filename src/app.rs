@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use std::error;
 use std::fmt;
+use std::fs;
 use std::io;
 
 use termion::event::{Event, Key};
@@ -70,7 +71,7 @@ impl From<design::SaveError> for Error {
 pub(crate) fn run() -> Result<(), Error> {
     let tty = termion::get_tty()?;
     {
-        let stream = std::fs::File::create("/dev/stdout")?;
+        let stream = fs::File::create("/dev/stdout")?;
         if !termion::is_tty(&stream) {
             return Err(Error::NotTTY);
         }

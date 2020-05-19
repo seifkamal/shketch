@@ -1,5 +1,7 @@
 use std::fmt;
 use std::io::{self, Write};
+use std::iter;
+use std::ops;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point {
@@ -127,7 +129,7 @@ impl From<Segment> for Vec<Cell> {
     }
 }
 
-impl<'a> std::iter::Sum<&'a Segment> for Segment {
+impl<'a> iter::Sum<&'a Segment> for Segment {
     fn sum<I: Iterator<Item = &'a Segment>>(iter: I) -> Self {
         let mut result = Segment::new();
         for segment in iter {
@@ -138,7 +140,7 @@ impl<'a> std::iter::Sum<&'a Segment> for Segment {
     }
 }
 
-impl std::ops::AddAssign for Segment {
+impl ops::AddAssign for Segment {
     fn add_assign(&mut self, mut rhs: Self) {
         self.cells.append(rhs.cells.as_mut())
     }
