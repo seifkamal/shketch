@@ -1,7 +1,7 @@
 use std::cmp;
 use std::fmt;
 
-use crate::component;
+use crate::unit;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point {
@@ -91,7 +91,7 @@ impl Default for CharSet {
 }
 
 pub trait Connect {
-    fn connect(&self, from: Point, to: Point) -> component::Segment;
+    fn connect(&self, from: Point, to: Point) -> unit::Segment;
 }
 
 pub struct Tracer {
@@ -107,8 +107,8 @@ impl Default for Tracer {
 }
 
 impl Connect for Tracer {
-    fn connect(&self, from: Point, to: Point) -> component::Segment {
-        let mut segment = component::Segment::new();
+    fn connect(&self, from: Point, to: Point) -> unit::Segment {
+        let mut segment = unit::Segment::new();
         let mut cursor = from;
 
         while cursor != to {
@@ -126,7 +126,7 @@ impl Connect for Tracer {
                 _ => {}
             };
 
-            segment.add(component::Cell::new(
+            segment.add(unit::Cell::new(
                 cursor,
                 self.char_set.next(current_pos, cursor),
             ));

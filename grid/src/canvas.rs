@@ -7,8 +7,8 @@ use termion::clear;
 use termion::cursor;
 use termion::event::MouseEvent;
 
-use crate::component::{self, Erase};
 use crate::path::{self, Connect};
+use crate::unit::{self, Erase};
 
 type Result = result::Result<(), Error>;
 
@@ -78,9 +78,9 @@ where
     writer: W,
     brush: B,
     style: Style,
-    base: Vec<component::Segment>,
-    overlay: component::Segment,
-    sketch: component::Segment,
+    base: Vec<unit::Segment>,
+    overlay: unit::Segment,
+    sketch: unit::Segment,
     cursor: path::Point,
 }
 
@@ -109,7 +109,7 @@ where
         Ok(())
     }
 
-    pub fn pin(&mut self, overlay: component::Segment) {
+    pub fn pin(&mut self, overlay: unit::Segment) {
         self.overlay = overlay;
     }
 
@@ -154,7 +154,7 @@ where
         Ok(())
     }
 
-    pub fn snapshot(&self) -> Vec<component::Segment> {
+    pub fn snapshot(&self) -> Vec<unit::Segment> {
         self.base.clone()
     }
 
