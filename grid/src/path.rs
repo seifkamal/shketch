@@ -1,6 +1,52 @@
 use std::cmp;
+use std::fmt;
 
 use crate::component;
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct Point {
+    pub(crate) x: u16,
+    pub(crate) y: u16,
+}
+
+impl Point {
+    pub fn new(x: u16, y: u16) -> Self {
+        Self { x, y }
+    }
+
+    pub fn move_up(&mut self) {
+        self.y -= 1;
+    }
+
+    pub fn move_down(&mut self) {
+        self.y += 1;
+    }
+
+    pub fn move_left(&mut self) {
+        self.x -= 1;
+    }
+
+    pub fn move_right(&mut self) {
+        self.x += 1;
+    }
+
+    pub fn move_to(&mut self, x: u16, y: u16) {
+        self.x = x;
+        self.y = y;
+    }
+}
+
+impl Default for Point {
+    fn default() -> Self {
+        Self { x: 1, y: 1 }
+    }
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\x1B[{};{}H", self.y, self.x)
+    }
+}
 
 #[derive(Debug)]
 pub struct CharSet {
@@ -14,9 +60,9 @@ pub struct CharSet {
 }
 
 impl CharSet {
-    pub fn next(&self, from: component::Point, to: component::Point) -> char {
-        let component::Point { x, y } = to;
-        let component::Point { x: cx, y: cy } = from;
+    pub fn next(&self, from: Point, to: Point) -> char {
+        let Point { x, y } = to;
+        let Point { x: cx, y: cy } = from;
 
         match (x, y) {
             (x, y) if cx == x && cy < y => self.up,
@@ -45,7 +91,7 @@ impl Default for CharSet {
 }
 
 pub trait Connect {
-    fn connect(&self, from: component::Point, to: component::Point) -> component::Segment;
+    fn connect(&self, from: Point, to: Point) -> component::Segment;
 }
 
 pub struct Tracer {
@@ -61,20 +107,20 @@ impl Default for Tracer {
 }
 
 impl Connect for Tracer {
-    fn connect(&self, from: component::Point, to: component::Point) -> component::Segment {
+    fn connect(&self, from: Point, to: Point) -> component::Segment {
         let mut segment = component::Segment::new();
         let mut cursor = from;
 
         while cursor != to {
             let current_pos = cursor;
 
-            match cursor.y().cmp(&to.y()) {
+            match cursor.y.cmp(&to.y) {
                 cmp::Ordering::Greater => cursor.move_up(),
                 cmp::Ordering::Less => cursor.move_down(),
                 _ => {}
             };
 
-            match cursor.x().cmp(&to.x()) {
+            match cursor.x.cmp(&to.x) {
                 cmp::Ordering::Greater => cursor.move_left(),
                 cmp::Ordering::Less => cursor.move_right(),
                 _ => {}

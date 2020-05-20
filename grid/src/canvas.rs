@@ -8,7 +8,7 @@ use termion::cursor;
 use termion::event::MouseEvent;
 
 use crate::component::{self, Erase};
-use crate::path::Connect;
+use crate::path::{self, Connect};
 
 type Result = result::Result<(), Error>;
 
@@ -81,7 +81,7 @@ where
     base: Vec<component::Segment>,
     overlay: component::Segment,
     sketch: component::Segment,
-    cursor: component::Point,
+    cursor: path::Point,
 }
 
 impl<W, B> Canvas<W, B>
@@ -128,12 +128,12 @@ where
 
                 match self.style {
                     Style::Plot => {
-                        self.sketch += self.brush.connect(self.cursor, component::Point::new(a, b));
+                        self.sketch += self.brush.connect(self.cursor, path::Point::new(a, b));
                         self.cursor.move_to(a, b);
                     }
                     Style::Line => {
                         self.sketch.erase(&mut self.writer)?;
-                        self.sketch = self.brush.connect(self.cursor, component::Point::new(a, b));
+                        self.sketch = self.brush.connect(self.cursor, path::Point::new(a, b));
                     }
                 }
             }

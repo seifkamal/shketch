@@ -3,58 +3,7 @@ use std::io::{self, Write};
 use std::iter;
 use std::ops;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Point {
-    pub(crate) x: u16,
-    pub(crate) y: u16,
-}
-
-impl Point {
-    pub fn new(x: u16, y: u16) -> Self {
-        Self { x, y }
-    }
-
-    pub fn x(self) -> u16 {
-        self.x
-    }
-
-    pub fn y(self) -> u16 {
-        self.y
-    }
-
-    pub fn move_up(&mut self) {
-        self.y -= 1;
-    }
-
-    pub fn move_down(&mut self) {
-        self.y += 1;
-    }
-
-    pub fn move_left(&mut self) {
-        self.x -= 1;
-    }
-
-    pub fn move_right(&mut self) {
-        self.x += 1;
-    }
-
-    pub fn move_to(&mut self, x: u16, y: u16) {
-        self.x = x;
-        self.y = y;
-    }
-}
-
-impl Default for Point {
-    fn default() -> Self {
-        Self { x: 1, y: 1 }
-    }
-}
-
-impl fmt::Display for Point {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\x1B[{};{}H", self.y, self.x)
-    }
-}
+use crate::path;
 
 pub trait Erase {
     fn erase(&mut self, writer: &mut impl Write) -> io::Result<()>;
@@ -62,12 +11,12 @@ pub trait Erase {
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Cell {
-    pos: Point,
+    pos: path::Point,
     content: char,
 }
 
 impl Cell {
-    pub fn new(pos: Point, content: char) -> Self {
+    pub fn new(pos: path::Point, content: char) -> Self {
         Self { pos, content }
     }
 }
@@ -95,7 +44,7 @@ impl Segment {
         Self { cells: Vec::new() }
     }
 
-    pub fn from_str(start: Point, str: &str) -> Self {
+    pub fn from_str(start: path::Point, str: &str) -> Self {
         let mut cells = Vec::new();
         let mut cursor = start;
         for char in str.as_bytes() {
@@ -114,13 +63,13 @@ impl Segment {
         self.cells.clear();
     }
 
-    pub fn boundaries(&self) -> Option<(Point, Point)> {
+    pub fn boundaries(&self) -> Option<(path::Point, path::Point)> {
         if self.cells.is_empty() {
             return None;
         }
 
         Some((
-            Point::new(
+            path::Point::new(
                 self.cells
                     .iter()
                     .map(|cell| cell.pos.x)
@@ -132,7 +81,7 @@ impl Segment {
                     .min()
                     .expect("could not determine min segment y"),
             ),
-            Point::new(
+            path::Point::new(
                 self.cells
                     .iter()
                     .map(|cell| cell.pos.x)
