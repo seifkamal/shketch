@@ -50,6 +50,12 @@ impl Default for Point {
     }
 }
 
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\x1B[{};{}H", self.y, self.x)
+    }
+}
+
 pub trait Erase {
     fn erase(&mut self, writer: &mut impl Write) -> io::Result<()>;
 }
@@ -68,7 +74,7 @@ impl Cell {
 
 impl fmt::Display for Cell {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "\x1B[{};{}H{}", self.pos.y, self.pos.x, self.content)
+        write!(f, "{}{}", self.pos, self.content)
     }
 }
 
