@@ -68,30 +68,21 @@ impl Segment {
             return None;
         }
 
+        let x_s = self.cells.iter().map(|cell| cell.pos.x);
+        let y_s = self.cells.iter().map(|cell| cell.pos.y);
+
         Some((
             path::Point::new(
-                self.cells
-                    .iter()
-                    .map(|cell| cell.pos.x)
+                x_s.clone()
                     .min()
                     .expect("could not determine min segment x"),
-                self.cells
-                    .iter()
-                    .map(|cell| cell.pos.y)
+                y_s.clone()
                     .min()
                     .expect("could not determine min segment y"),
             ),
             path::Point::new(
-                self.cells
-                    .iter()
-                    .map(|cell| cell.pos.x)
-                    .max()
-                    .expect("could not determine max segment x"),
-                self.cells
-                    .iter()
-                    .map(|cell| cell.pos.y)
-                    .max()
-                    .expect("could not determine max segment y"),
+                x_s.max().expect("could not determine max segment x"),
+                y_s.max().expect("could not determine max segment y"),
             ),
         ))
     }
