@@ -10,7 +10,10 @@ fn main() {
         }
     });
 
-    if result.is_err() {
-        eprintln!("An unrecoverable error occurred");
+    if let Err(panic) = result {
+        match panic.downcast::<String>() {
+            Ok(error) => eprintln!("Unexpected error: {}", error),
+            _ => eprintln!("An unknown error occurred"),
+        }
     }
 }
