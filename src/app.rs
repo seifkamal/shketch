@@ -1,4 +1,3 @@
-use std::convert::TryInto;
 use std::error;
 use std::fmt;
 use std::fs;
@@ -9,23 +8,23 @@ use termion::input::{MouseTerminal, TermRead};
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
 
+use crate::export;
+
 #[derive(Debug)]
 pub(crate) enum Error {
     NotTTY,
-    Io(io::Error),
-    Update(design::UpdateError),
-    Parse(design::ParseError),
-    Save(design::SaveError),
+    IoProblem(io::Error),
+    CanvasUpdateFailed(grid::Error),
+    ExportFailed(export::Error),
 }
 
 impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
             Error::NotTTY => None,
-            Error::Io(e) => Some(e),
-            Error::Update(e) => Some(e),
-            Error::Parse(e) => Some(e),
-            Error::Save(e) => Some(e),
+            Error::IoProblem(e) => Some(e),
+            Error::CanvasUpdateFailed(e) => Some(e),
+            Error::ExportFailed(e) => Some(e),
         }
     }
 }
@@ -33,11 +32,10 @@ impl error::Error for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let msg = match self {
-            Error::NotTTY => "stream is not a TTY",
-            Error::Io(_) => "failed to perform I/O operation",
-            Error::Update(_) => "failed to update design",
-            Error::Parse(_) => "failed to parse design",
-            Error::Save(_) => "failed to save design",
+            Error::NotTTY => "stream is not a TTY".to_string(),
+            Error::IoProblem(e) => format!("failed to perform I/O operation; {}", e),
+            Error::CanvasUpdateFailed(e) => format!("{}", e),
+            Error::ExportFailed(e) => format!("{}", e),
         };
 
         write!(f, "Application error: {}", msg)
@@ -46,25 +44,19 @@ impl fmt::Display for Error {
 
 impl From<io::Error> for Error {
     fn from(io_error: io::Error) -> Self {
-        Error::Io(io_error)
+        Error::IoProblem(io_error)
     }
 }
 
-impl From<design::UpdateError> for Error {
-    fn from(canvas_error: design::UpdateError) -> Self {
-        Error::Update(canvas_error)
+impl From<grid::Error> for Error {
+    fn from(canvas_error: grid::Error) -> Self {
+        Error::CanvasUpdateFailed(canvas_error)
     }
 }
 
-impl From<design::ParseError> for Error {
-    fn from(parse_error: design::ParseError) -> Self {
-        Error::Parse(parse_error)
-    }
-}
-
-impl From<design::SaveError> for Error {
-    fn from(save_error: design::SaveError) -> Self {
-        Error::Save(save_error)
+impl From<export::Error> for Error {
+    fn from(save_error: export::Error) -> Self {
+        Error::ExportFailed(save_error)
     }
 }
 
@@ -77,24 +69,24 @@ pub(crate) fn run() -> Result<(), Error> {
         }
     }
 
-    let screen = AlternateScreen::from(tty.try_clone()?.into_raw_mode()?);
-    let mut canvas = design::Canvas::new(MouseTerminal::from(screen), grid::Tracer::default());
+    let mut save_file_name: Option<String> = None;
+    let mut canvas = {
+        let screen = AlternateScreen::from(tty.try_clone()?.into_raw_mode()?);
+        grid::Canvas::new(MouseTerminal::from(screen), grid::Tracer::default())
+    };
 
     canvas.init()?;
     canvas.pin(toolbar());
     canvas.draw()?;
 
-    let mut save_file_name: Option<String> = None;
-
     for c in tty.events() {
         match c? {
             Event::Key(Key::Char('q')) => break,
             Event::Key(Key::Ctrl('s')) => {
-                let blueprint: Result<design::BluePrint, _> = canvas.snapshot().try_into();
-                if let Some(name) = &save_file_name {
-                    design::save_as(&blueprint?, &name)?;
-                } else {
-                    save_file_name = Some(design::save(&blueprint?)?);
+                let blueprint: grid::Segment = canvas.snapshot().iter().sum();
+                match save_file_name {
+                    Some(ref name) => export::to_file_as(&blueprint, name)?,
+                    None => save_file_name = Some(export::to_file(&blueprint)?),
                 }
             }
             Event::Key(Key::Char('k')) => canvas.clear()?,
@@ -111,14 +103,14 @@ pub(crate) fn run() -> Result<(), Error> {
 
 fn toolbar() -> grid::Segment {
     let item = |x, y, text| grid::Segment::from_str(grid::Point::new(x, y), text);
-
     let mut toolbar = grid::Segment::new();
-    toolbar += item(1, 1, "q - Exit");
-    toolbar += item(15, 1, "k - Clear");
-    toolbar += item(30, 1, "u - Undo");
-    toolbar += item(45, 1, "ctrl+s - Save");
-
-    toolbar += item(1, 2, "1 - Brush");
-    toolbar += item(15, 2, "2 - Ruler");
+    // Actions
+    toolbar += item(1, 1, "Exit (q)");
+    toolbar += item(15, 1, "Clear (k)");
+    toolbar += item(30, 1, "Undo (u)");
+    toolbar += item(45, 1, "Save (Ctrl+s)");
+    // Tools
+    toolbar += item(1, 2, "Brush (1)");
+    toolbar += item(15, 2, "Ruler (2)");
     toolbar
 }

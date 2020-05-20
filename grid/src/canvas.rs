@@ -7,45 +7,46 @@ use termion::clear;
 use termion::cursor;
 use termion::event::MouseEvent;
 
-use grid::{Connect, Erase};
+use crate::component::{self, Erase};
+use crate::path::Connect;
 
-type Result = result::Result<(), UpdateError>;
+type Result = result::Result<(), Error>;
 
 #[derive(Debug)]
-pub enum UpdateError {
+pub enum Error {
     Fmt(fmt::Error),
     Io(io::Error),
 }
 
-impl error::Error for UpdateError {
+impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            UpdateError::Fmt(e) => Some(e),
-            UpdateError::Io(e) => Some(e),
+            Error::Fmt(e) => Some(e),
+            Error::Io(e) => Some(e),
         }
     }
 }
 
-impl fmt::Display for UpdateError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let msg = match self {
-            UpdateError::Fmt(_) => "failed to format message to stream",
-            UpdateError::Io(_) => "failed to perform I/O operation",
+            Error::Fmt(_) => "failed to format message to stream",
+            Error::Io(_) => "failed to perform I/O operation",
         };
 
-        write!(f, "{}", msg)
+        write!(f, "could not update canvas; {}", msg)
     }
 }
 
-impl From<fmt::Error> for UpdateError {
+impl From<fmt::Error> for Error {
     fn from(fmt_error: fmt::Error) -> Self {
-        UpdateError::Fmt(fmt_error)
+        Error::Fmt(fmt_error)
     }
 }
 
-impl From<io::Error> for UpdateError {
+impl From<io::Error> for Error {
     fn from(io_error: io::Error) -> Self {
-        UpdateError::Io(io_error)
+        Error::Io(io_error)
     }
 }
 
@@ -77,10 +78,10 @@ where
     writer: W,
     brush: B,
     style: Style,
-    base: Vec<grid::Segment>,
-    overlay: grid::Segment,
-    sketch: grid::Segment,
-    cursor: grid::Point,
+    base: Vec<component::Segment>,
+    overlay: component::Segment,
+    sketch: component::Segment,
+    cursor: component::Point,
 }
 
 impl<W, B> Canvas<W, B>
@@ -88,7 +89,7 @@ where
     W: Write,
     B: Connect,
 {
-    const TOOLBAR_DIVIDER: u16 = 3;
+    const TOOLBAR_BOUNDARY: u16 = 3;
 
     pub fn new(writer: W, brush: B) -> Self {
         Self {
@@ -108,7 +109,7 @@ where
         Ok(())
     }
 
-    pub fn pin(&mut self, overlay: grid::Segment) {
+    pub fn pin(&mut self, overlay: component::Segment) {
         self.overlay = overlay;
     }
 
@@ -121,18 +122,18 @@ where
             MouseEvent::Press(_, a, b) => self.cursor.move_to(a, b),
             MouseEvent::Hold(a, b) => {
                 // Reserve toolbar space
-                if b < Self::TOOLBAR_DIVIDER {
+                if b < Self::TOOLBAR_BOUNDARY {
                     return Ok(());
                 }
 
                 match self.style {
                     Style::Plot => {
-                        self.sketch += self.brush.connect(self.cursor, grid::Point::new(a, b));
+                        self.sketch += self.brush.connect(self.cursor, component::Point::new(a, b));
                         self.cursor.move_to(a, b);
                     }
                     Style::Line => {
                         self.sketch.erase(&mut self.writer)?;
-                        self.sketch = self.brush.connect(self.cursor, grid::Point::new(a, b));
+                        self.sketch = self.brush.connect(self.cursor, component::Point::new(a, b));
                     }
                 }
             }
@@ -153,7 +154,7 @@ where
         Ok(())
     }
 
-    pub fn snapshot(&self) -> Vec<grid::Segment> {
+    pub fn snapshot(&self) -> Vec<component::Segment> {
         self.base.clone()
     }
 
@@ -171,7 +172,7 @@ where
         write!(
             self.writer,
             "{}{}",
-            cursor::Goto(1, Self::TOOLBAR_DIVIDER),
+            cursor::Goto(1, Self::TOOLBAR_BOUNDARY),
             clear::All
         )?;
         self.writer.flush()?;

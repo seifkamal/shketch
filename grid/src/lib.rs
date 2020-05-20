@@ -1,5 +1,7 @@
+mod canvas;
+mod component;
 mod path;
-mod section;
 
+pub use canvas::*;
+pub use component::*;
 pub use path::*;
-pub use section::*;

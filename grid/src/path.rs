@@ -1,5 +1,7 @@
 use std::cmp;
 
+use crate::component;
+
 #[derive(Debug)]
 pub struct CharSet {
     stationary: char,
@@ -12,9 +14,9 @@ pub struct CharSet {
 }
 
 impl CharSet {
-    pub fn next(&self, from: super::Point, to: super::Point) -> char {
-        let super::Point { x, y } = to;
-        let super::Point { x: cx, y: cy } = from;
+    pub fn next(&self, from: component::Point, to: component::Point) -> char {
+        let component::Point { x, y } = to;
+        let component::Point { x: cx, y: cy } = from;
 
         match (x, y) {
             (x, y) if cx == x && cy < y => self.up,
@@ -43,7 +45,7 @@ impl Default for CharSet {
 }
 
 pub trait Connect {
-    fn connect(&self, from: super::Point, to: super::Point) -> super::Segment;
+    fn connect(&self, from: component::Point, to: component::Point) -> component::Segment;
 }
 
 pub struct Tracer {
@@ -59,8 +61,8 @@ impl Default for Tracer {
 }
 
 impl Connect for Tracer {
-    fn connect(&self, from: super::Point, to: super::Point) -> super::Segment {
-        let mut segment = super::Segment::new();
+    fn connect(&self, from: component::Point, to: component::Point) -> component::Segment {
+        let mut segment = component::Segment::new();
         let mut cursor = from;
 
         while cursor != to {
@@ -78,7 +80,7 @@ impl Connect for Tracer {
                 _ => {}
             };
 
-            segment.add(super::Cell::new(
+            segment.add(component::Cell::new(
                 cursor,
                 self.char_set.next(current_pos, cursor),
             ));
