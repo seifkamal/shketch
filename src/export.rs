@@ -48,7 +48,7 @@ impl From<time::SystemTimeError> for Error {
 pub fn to_file(blueprint: &grid::Segment) -> SaveResult<String> {
     let file_name = {
         let time = time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH)?;
-        format!("shketch-{}", time.as_millis())
+        format!("shketch-{}.txt", time.as_millis())
     };
     to_file_as(blueprint, &file_name)?;
     Ok(file_name)
