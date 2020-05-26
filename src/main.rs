@@ -4,7 +4,7 @@ use shketch::app;
 
 fn main() {
     let result = panic::catch_unwind(|| {
-        if let Err(error) = app::run() {
+        if let Err(error) = app::launch() {
             eprintln!("{}", error);
         }
     });

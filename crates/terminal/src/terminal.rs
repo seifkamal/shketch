@@ -3,11 +3,13 @@ use std::error;
 use std::fmt;
 use std::io;
 use std::result;
+use std::time;
 
+use crossterm::event;
+use crossterm::style;
 use crossterm::terminal;
 use crossterm::tty::IsTty;
-use crossterm::ExecutableCommand;
-use crossterm::{event, ErrorKind};
+use crossterm::{ErrorKind, ExecutableCommand};
 
 type SomeResult<T = ()> = result::Result<T, Box<dyn error::Error>>;
 type ExecResult<'a> = SomeResult<&'a mut Terminal>;
@@ -15,6 +17,8 @@ type ExecResult<'a> = SomeResult<&'a mut Terminal>;
 pub fn is_tty() -> bool {
     io::stdout().is_tty() && io::stdin().is_tty()
 }
+
+pub type Color = style::Color;
 
 pub struct Terminal {
     stdout: io::Stdout,
@@ -25,8 +29,12 @@ impl Terminal {
         Self { stdout }
     }
 
-    pub fn read_event(&self) -> Result<Event, InputError> {
-        event::read()?.try_into()
+    pub fn read_event(&self) -> Result<Option<Event>, InputError> {
+        if !event::poll(time::Duration::from_millis(100))? {
+            return Ok(None);
+        }
+
+        Ok(Some(event::read()?.try_into()?))
     }
 
     pub fn enable_raw_mode(&mut self) -> ExecResult {
@@ -66,6 +74,21 @@ impl Terminal {
 
     pub fn disable_mouse_capture(&mut self) -> ExecResult {
         self.stdout.execute(event::DisableMouseCapture)?;
+        Ok(self)
+    }
+
+    pub fn set_bg_color(&mut self, color: Color) -> ExecResult {
+        self.stdout.execute(style::SetBackgroundColor(color))?;
+        Ok(self)
+    }
+
+    pub fn set_fg_color(&mut self, color: Color) -> ExecResult {
+        self.stdout.execute(style::SetForegroundColor(color))?;
+        Ok(self)
+    }
+
+    pub fn reset_colors(&mut self) -> ExecResult {
+        self.stdout.execute(style::ResetColor)?;
         Ok(self)
     }
 

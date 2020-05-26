@@ -37,7 +37,6 @@ where
     brush: B,
     style: Style,
     base: Vec<unit::Segment>,
-    overlay: unit::Segment,
     sketch: unit::Segment,
     cursor: path::Point,
 }
@@ -55,14 +54,9 @@ where
             brush,
             style: Default::default(),
             base: Default::default(),
-            overlay: Default::default(),
             sketch: Default::default(),
             cursor: Default::default(),
         }
-    }
-
-    pub fn pin(&mut self, overlay: unit::Segment) {
-        self.overlay = overlay;
     }
 
     pub fn alt_style(&mut self, style: Style) {
@@ -102,7 +96,13 @@ where
         for segment in &self.base {
             write!(self.writer, "{}", segment)?;
         }
-        write!(self.writer, "{}{}", self.sketch, self.overlay)?;
+        write!(self.writer, "{}", self.sketch)?;
+        self.writer.flush()?;
+        Ok(())
+    }
+
+    pub fn overlay(&mut self, segment: &unit::Segment) -> Result {
+        write!(self.writer, "{}", segment)?;
         self.writer.flush()?;
         Ok(())
     }
@@ -138,6 +138,6 @@ where
         for segment in &self.base {
             write!(f, "{}", segment)?;
         }
-        write!(f, "{}{}", self.sketch, self.overlay)
+        write!(f, "{}", self.sketch)
     }
 }
