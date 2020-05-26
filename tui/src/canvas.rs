@@ -3,50 +3,46 @@ use std::fmt;
 use std::io::{self, Write};
 use std::result;
 
-use termion::clear;
-use termion::cursor;
-use termion::event::MouseEvent;
+use crate::grid::{self, Connect, Erase};
+use crate::terminal;
 
-use crate::path::{self, Connect};
-use crate::unit::{self, Erase};
-
-type Result = result::Result<(), Error>;
+type Result = result::Result<(), CanvasError>;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum CanvasError {
     Fmt(fmt::Error),
     Io(io::Error),
 }
 
-impl error::Error for Error {
+impl error::Error for CanvasError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
-            Error::Fmt(e) => Some(e),
-            Error::Io(e) => Some(e),
+            CanvasError::Fmt(e) => Some(e),
+            CanvasError::Io(e) => Some(e),
         }
     }
 }
 
-impl fmt::Display for Error {
+impl fmt::Display for CanvasError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let msg = match self {
-            Error::Fmt(_) => "failed to format message to stream",
-            Error::Io(_) => "failed to perform I/O operation",
+            CanvasError::Fmt(_) => "failed to format message to stream",
+            CanvasError::Io(_) => "failed to perform I/O operation",
         };
 
         write!(f, "could not update canvas; {}", msg)
     }
 }
 
-impl From<fmt::Error> for Error {
+impl From<fmt::Error> for CanvasError {
     fn from(fmt_error: fmt::Error) -> Self {
-        Error::Fmt(fmt_error)
+        CanvasError::Fmt(fmt_error)
     }
 }
 
-impl From<io::Error> for Error {
+impl From<io::Error> for CanvasError {
     fn from(io_error: io::Error) -> Self {
-        Error::Io(io_error)
+        CanvasError::Io(io_error)
     }
 }
 
@@ -78,10 +74,10 @@ where
     writer: W,
     brush: B,
     style: Style,
-    base: Vec<unit::Segment>,
-    overlay: unit::Segment,
-    sketch: unit::Segment,
-    cursor: path::Point,
+    base: Vec<grid::Segment>,
+    overlay: grid::Segment,
+    sketch: grid::Segment,
+    cursor: grid::Point,
 }
 
 impl<W, B> Canvas<W, B>
@@ -103,13 +99,7 @@ where
         }
     }
 
-    pub fn init(&mut self) -> Result {
-        write!(self.writer, "{}{}", clear::All, cursor::Hide)?;
-        self.writer.flush()?;
-        Ok(())
-    }
-
-    pub fn pin(&mut self, overlay: unit::Segment) {
+    pub fn pin(&mut self, overlay: grid::Segment) {
         self.overlay = overlay;
     }
 
@@ -117,27 +107,28 @@ where
         self.style = style;
     }
 
-    pub fn update(&mut self, mouse_event: MouseEvent) -> Result {
-        match mouse_event {
-            MouseEvent::Press(_, a, b) => self.cursor.move_to(a, b),
-            MouseEvent::Hold(a, b) => {
+    pub fn update(&mut self, event: terminal::MouseEvent) -> Result {
+        let terminal::MouseEvent { action, pos } = event;
+        match (action, pos.x, pos.y) {
+            (terminal::MouseAction::Press, x, y) => self.cursor.move_to(x, y),
+            (terminal::MouseAction::Drag, x, y) => {
                 // Reserve toolbar space
-                if b < Self::TOOLBAR_BOUNDARY {
+                if y < Self::TOOLBAR_BOUNDARY {
                     return Ok(());
                 }
 
                 match self.style {
                     Style::Plot => {
-                        self.sketch += self.brush.connect(self.cursor, path::Point::new(a, b));
-                        self.cursor.move_to(a, b);
+                        self.sketch += self.brush.connect(self.cursor, (x, y).into());
+                        self.cursor.move_to(x, y);
                     }
                     Style::Line => {
                         self.sketch.erase(&mut self.writer)?;
-                        self.sketch = self.brush.connect(self.cursor, path::Point::new(a, b));
+                        self.sketch = self.brush.connect(self.cursor, (x, y).into());
                     }
                 }
             }
-            MouseEvent::Release(_, _) => {
+            (terminal::MouseAction::Release, ..) => {
                 self.base.push(self.sketch.clone());
                 self.sketch.clear();
             }
@@ -154,7 +145,7 @@ where
         Ok(())
     }
 
-    pub fn snapshot(&self) -> Vec<unit::Segment> {
+    pub fn snapshot(&self) -> Vec<grid::Segment> {
         self.base.clone()
     }
 
@@ -166,33 +157,25 @@ where
     }
 
     pub fn clear(&mut self) -> Result {
+        for segment in &mut self.base {
+            segment.erase(&mut self.writer)?;
+        }
         self.base.clear();
+        self.sketch.erase(&mut self.writer)?;
         self.sketch.clear();
-
-        write!(
-            self.writer,
-            "{}{}",
-            cursor::Goto(1, Self::TOOLBAR_BOUNDARY),
-            clear::All
-        )?;
-        self.writer.flush()?;
         Ok(())
     }
 }
 
-impl<W, B> Drop for Canvas<W, B>
+impl<W, B> fmt::Display for Canvas<W, B>
 where
     W: Write,
     B: Connect,
 {
-    fn drop(&mut self) {
-        write!(
-            self.writer,
-            "{}{}{}",
-            clear::All,
-            cursor::Goto(1, 1),
-            cursor::Show
-        )
-        .expect("Clear canvas before dropping");
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for segment in &self.base {
+            write!(f, "{}", segment)?;
+        }
+        write!(f, "{}{}", self.sketch, self.overlay)
     }
 }

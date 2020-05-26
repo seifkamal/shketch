@@ -1,7 +1,6 @@
 use std::panic;
 
-mod app;
-mod export;
+use shketch::app;
 
 fn main() {
     let result = panic::catch_unwind(|| {

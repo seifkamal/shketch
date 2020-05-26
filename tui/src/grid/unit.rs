@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::iter;
 use std::ops;
 
-use crate::path;
+use super::path;
 
 pub trait Erase {
     fn erase(&mut self, writer: &mut impl Write) -> io::Result<()>;
@@ -73,12 +73,8 @@ impl Segment {
 
         Some((
             path::Point::new(
-                x_s.clone()
-                    .min()
-                    .expect("could not determine min segment x"),
-                y_s.clone()
-                    .min()
-                    .expect("could not determine min segment y"),
+                x_s.clone().min().expect("could not determine min segment x"),
+                y_s.clone().min().expect("could not determine min segment y"),
             ),
             path::Point::new(
                 x_s.max().expect("could not determine max segment x"),

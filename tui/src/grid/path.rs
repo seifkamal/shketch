@@ -1,12 +1,12 @@
 use std::cmp;
 use std::fmt;
 
-use crate::unit;
+use super::unit;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point {
-    pub(crate) x: u16,
-    pub(crate) y: u16,
+    pub x: u16,
+    pub y: u16,
 }
 
 impl Point {
@@ -39,6 +39,12 @@ impl Point {
 impl Default for Point {
     fn default() -> Self {
         Self { x: 1, y: 1 }
+    }
+}
+
+impl From<(u16, u16)> for Point {
+    fn from(tuple: (u16, u16)) -> Self {
+        Self::new(tuple.0, tuple.1)
     }
 }
 
@@ -100,9 +106,7 @@ pub struct Tracer {
 
 impl Default for Tracer {
     fn default() -> Self {
-        Self {
-            char_set: CharSet::default(),
-        }
+        Self { char_set: CharSet::default() }
     }
 }
 
@@ -126,10 +130,7 @@ impl Connect for Tracer {
                 _ => {}
             };
 
-            segment.add(unit::Cell::new(
-                cursor,
-                self.char_set.next(current_pos, cursor),
-            ));
+            segment.add(unit::Cell::new(cursor, self.char_set.next(current_pos, cursor)));
         }
 
         segment
