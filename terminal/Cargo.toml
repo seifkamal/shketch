@@ -1,5 +1,5 @@
 [package]
-name = "tui"
+name = "terminal"
 version = "0.1.0"
 authors = ["Seif Kamal <seifskm@gmail.com>"]
 edition = "2018"

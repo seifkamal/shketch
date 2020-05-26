@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use std::iter;
 use std::ops;
 
-use super::path;
+use crate::path;
 
 pub trait Erase {
     fn erase(&mut self, writer: &mut impl Write) -> io::Result<()>;

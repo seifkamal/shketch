@@ -3,8 +3,6 @@ use std::io::Write;
 use std::path;
 use std::time;
 
-use tui::grid;
-
 pub fn to_file(blueprint: &grid::Segment) -> crate::Result<String> {
     let file_name = {
         let time = time::SystemTime::now().duration_since(time::SystemTime::UNIX_EPOCH)?;

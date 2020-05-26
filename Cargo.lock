@@ -69,6 +69,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dcaa9ae7725d12cdb85b3ad99a434db70b468c09ded17e012d86b5c1010f7a7"
 
 [[package]]
+name = "grid"
+version = "0.1.0"
+dependencies = [
+ "terminal",
+]
+
+[[package]]
 name = "iovec"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -199,7 +206,8 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 name = "shketch"
 version = "0.1.0"
 dependencies = [
- "tui",
+ "grid",
+ "terminal",
 ]
 
 [[package]]
@@ -236,7 +244,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7cb5678e1615754284ec264d9bb5b4c27d2018577fd90ac0ceb578591ed5ee4"
 
 [[package]]
-name = "tui"
+name = "terminal"
 version = "0.1.0"
 dependencies = [
  "crossterm",

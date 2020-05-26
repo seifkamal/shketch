@@ -5,9 +5,11 @@ authors = ["Seif Kamal <seifskm@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-tui = { path = "tui" }
+grid = { path = "grid" }
+terminal = { path = "terminal" }
 
 [workspace]
 members = [
-    "tui",
+    "grid",
+    "terminal",
 ]

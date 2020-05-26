@@ -1,31 +1,29 @@
 use std::io;
 
-use tui::{self, grid};
-
 use crate::export;
 
 pub fn run() -> crate::Result {
-    if !tui::is_tty() {
+    if !terminal::is_tty() {
         return Err("stream is not TTY".into());
     }
 
-    let mut terminal = tui::Terminal::default();
+    let mut terminal = terminal::Terminal::default();
     init_terminal(&mut terminal)?;
 
     {
         let mut save_file_name: Option<String> = None;
-        let mut canvas = tui::Canvas::new(io::stdout(), grid::Tracer::default());
+        let mut canvas = grid::Canvas::new(io::stdout(), grid::Tracer::default());
         canvas.pin(toolbar());
         canvas.draw()?;
 
         loop {
             match terminal.read_event().unwrap() {
-                tui::Event::Mouse(me) => canvas.update(me)?,
-                tui::Event::Key(tui::KeyEvent { char, modifier }) => match (char, modifier) {
+                terminal::Event::Mouse(me) => canvas.update(me)?,
+                terminal::Event::Key(terminal::KeyEvent { char, modifier }) => match (char, modifier) {
                     ('q', _) => break,
                     ('u', _) => canvas.undo()?,
                     ('k', _) => canvas.clear()?,
-                    ('s', Some(tui::KeyModifier::Ctrl)) => {
+                    ('s', Some(terminal::KeyModifier::Ctrl)) => {
                         let blueprint: grid::Segment = canvas.snapshot().iter().sum();
                         match save_file_name {
                             Some(ref name) => export::to_file_as(&blueprint, name)?,
@@ -44,7 +42,7 @@ pub fn run() -> crate::Result {
     restore_terminal(&mut terminal)
 }
 
-fn init_terminal(terminal: &mut tui::Terminal) -> crate::Result {
+fn init_terminal(terminal: &mut terminal::Terminal) -> crate::Result {
     terminal
         .enter_alt_screen()?
         .enable_raw_mode()?
@@ -54,7 +52,7 @@ fn init_terminal(terminal: &mut tui::Terminal) -> crate::Result {
     Ok(())
 }
 
-fn restore_terminal(terminal: &mut tui::Terminal) -> crate::Result {
+fn restore_terminal(terminal: &mut terminal::Terminal) -> crate::Result {
     terminal
         .clear()?
         .show_cursor()?

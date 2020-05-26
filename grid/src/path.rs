@@ -1,7 +1,7 @@
 use std::cmp;
 use std::fmt;
 
-use super::unit;
+use crate::unit;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point {

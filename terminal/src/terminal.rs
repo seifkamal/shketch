@@ -2,19 +2,19 @@ use std::convert::{TryFrom, TryInto};
 use std::error;
 use std::fmt;
 use std::io;
+use std::result;
 
 use crossterm::{event, ErrorKind};
 use crossterm::ExecutableCommand;
 use crossterm::terminal;
 use crossterm::tty::IsTty;
 
-use crate::grid;
+type SomeResult<T = ()> = result::Result<T, Box<dyn error::Error>>;
+type ExecResult<'a> = SomeResult<&'a mut Terminal>;
 
 pub fn is_tty() -> bool {
     io::stdout().is_tty() && io::stdin().is_tty()
 }
-
-type ExecResult<'a> = crate::Result<&'a mut Terminal>;
 
 pub struct Terminal {
     stdout: io::Stdout,
@@ -154,15 +154,11 @@ impl TryFrom<event::KeyEvent> for KeyEvent {
 }
 
 pub struct MouseEvent {
-    pub(crate) action: MouseAction,
-    pub(crate) pos: grid::Point,
+    pub pos: MousePos,
+    pub action: MouseAction,
 }
 
-impl MouseEvent {
-    pub fn new(action: MouseAction, pos: grid::Point) -> Self {
-        Self { action, pos }
-    }
-}
+pub type MousePos = (u16, u16);
 
 pub enum MouseAction {
     Press,
@@ -170,11 +166,17 @@ pub enum MouseAction {
     Release,
 }
 
+impl MouseEvent {
+    pub fn new(pos: MousePos, action: MouseAction) -> Self {
+        Self { action, pos }
+    }
+}
+
 impl TryFrom<event::MouseEvent> for MouseEvent {
     type Error = InputError;
 
     fn try_from(event: event::MouseEvent) -> Result<Self, Self::Error> {
-        let mouse = |x, y, action| Ok(MouseEvent::new(action, grid::Point::new(x, y)));
+        let mouse = |x, y, action| Ok(MouseEvent::new((x, y), action));
         match event {
             event::MouseEvent::Down(_, x, y, _) => mouse(x, y, MouseAction::Press),
             event::MouseEvent::Up(_, x, y, _) => mouse(x, y, MouseAction::Release),
