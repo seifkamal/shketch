@@ -10,8 +10,7 @@ pub fn run() -> crate::Result {
     }
 
     let mut terminal = tui::Terminal::default();
-    terminal.wipe()?;
-    terminal.enable_raw_mode();
+    init_terminal(&mut terminal)?;
 
     {
         let mut save_file_name: Option<String> = None;
@@ -42,8 +41,26 @@ pub fn run() -> crate::Result {
         }
     }
 
-    terminal.disable_raw_mode();
-    terminal.restore()?;
+    restore_terminal(&mut terminal)
+}
+
+fn init_terminal(terminal: &mut tui::Terminal) -> crate::Result {
+    terminal
+        .enter_alt_screen()?
+        .enable_raw_mode()?
+        .enable_mouse_capture()?
+        .hide_cursor()?
+        .clear()?;
+    Ok(())
+}
+
+fn restore_terminal(terminal: &mut tui::Terminal) -> crate::Result {
+    terminal
+        .clear()?
+        .show_cursor()?
+        .disable_mouse_capture()?
+        .disable_raw_mode()?
+        .leave_alt_screen()?;
     Ok(())
 }
 

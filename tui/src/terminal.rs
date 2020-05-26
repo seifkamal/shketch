@@ -14,6 +14,8 @@ pub fn is_tty() -> bool {
     io::stdout().is_tty() && io::stdin().is_tty()
 }
 
+type ExecResult<'a> = crate::Result<&'a mut Terminal>;
+
 pub struct Terminal {
     stdout: io::Stdout,
 }
@@ -23,37 +25,53 @@ impl Terminal {
         Self { stdout }
     }
 
-    pub fn wipe(&mut self) -> crate::Result {
-        self.stdout.execute(terminal::EnterAlternateScreen)?;
-        self.stdout.execute(crossterm::cursor::Hide)?;
-        self.stdout.execute(event::EnableMouseCapture)?;
-        self.clear()?;
-        Ok(())
-    }
-
-    pub fn restore(&mut self) -> crate::Result {
-        self.clear()?;
-        self.stdout.execute(event::DisableMouseCapture)?;
-        self.stdout.execute(crossterm::cursor::Show)?;
-        self.stdout.execute(terminal::LeaveAlternateScreen)?;
-        Ok(())
-    }
-
-    pub fn clear(&mut self) -> crate::Result {
-        self.stdout.execute(terminal::Clear(terminal::ClearType::All))?;
-        Ok(())
-    }
-
-    pub fn enable_raw_mode(&self) {
-        terminal::enable_raw_mode().unwrap();
-    }
-
-    pub fn disable_raw_mode(&self) {
-        terminal::disable_raw_mode().unwrap();
-    }
-
     pub fn read_event(&self) -> Result<Event, InputError> {
         event::read()?.try_into()
+    }
+
+    pub fn enable_raw_mode(&mut self) -> ExecResult {
+        terminal::enable_raw_mode()?;
+        Ok(self)
+    }
+
+    pub fn disable_raw_mode(&mut self) -> ExecResult {
+        terminal::disable_raw_mode()?;
+        Ok(self)
+    }
+
+    pub fn hide_cursor(&mut self) -> ExecResult {
+        self.stdout.execute(crossterm::cursor::Hide)?;
+        Ok(self)
+    }
+
+    pub fn show_cursor(&mut self) -> ExecResult {
+        self.stdout.execute(crossterm::cursor::Show)?;
+        Ok(self)
+    }
+
+    pub fn enter_alt_screen(&mut self) -> ExecResult {
+        self.stdout.execute(terminal::EnterAlternateScreen)?;
+        Ok(self)
+    }
+
+    pub fn leave_alt_screen(&mut self) -> ExecResult {
+        self.stdout.execute(terminal::LeaveAlternateScreen)?;
+        Ok(self)
+    }
+
+    pub fn enable_mouse_capture(&mut self) -> ExecResult {
+        self.stdout.execute(event::EnableMouseCapture)?;
+        Ok(self)
+    }
+
+    pub fn disable_mouse_capture(&mut self) -> ExecResult {
+        self.stdout.execute(event::DisableMouseCapture)?;
+        Ok(self)
+    }
+
+    pub fn clear(&mut self) -> ExecResult {
+        self.stdout.execute(terminal::Clear(terminal::ClearType::All))?;
+        Ok(self)
     }
 }
 
