@@ -78,7 +78,7 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                 terminal.reset_colors()?;
             }
             Err(terminal::InputError::UnknownError(error)) => return Err(error.into()),
-            Err(_) => {}
+            Err(terminal::InputError::UnsupportedEvent) => {}
         }
     }
 

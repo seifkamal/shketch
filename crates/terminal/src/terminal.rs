@@ -107,8 +107,6 @@ impl Default for Terminal {
 #[derive(Debug)]
 pub enum InputError {
     UnsupportedEvent,
-    UnsupportedKeyEvent,
-    UnsupportedMouseEvent,
     UnknownError(crossterm::ErrorKind),
 }
 
@@ -123,9 +121,7 @@ impl From<crossterm::ErrorKind> for InputError {
 impl fmt::Display for InputError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InputError::UnsupportedKeyEvent
-            | InputError::UnsupportedMouseEvent
-            | InputError::UnsupportedEvent => write!(f, "unsupported input event"),
+            InputError::UnsupportedEvent => write!(f, "unsupported input event"),
             InputError::UnknownError(e) => write!(f, "some error occurred; {}", e),
         }
     }
@@ -171,7 +167,7 @@ impl TryFrom<event::KeyEvent> for KeyEvent {
                     _ => None,
                 },
             }),
-            _ => Err(InputError::UnsupportedKeyEvent),
+            _ => Err(InputError::UnsupportedEvent),
         }
     }
 }
@@ -204,7 +200,7 @@ impl TryFrom<event::MouseEvent> for MouseEvent {
             event::MouseEvent::Down(_, x, y, _) => mouse(x, y, MouseAction::Press),
             event::MouseEvent::Up(_, x, y, _) => mouse(x, y, MouseAction::Release),
             event::MouseEvent::Drag(_, x, y, _) => mouse(x, y, MouseAction::Drag),
-            _ => Err(InputError::UnsupportedMouseEvent),
+            _ => Err(InputError::UnsupportedEvent),
         }
     }
 }
