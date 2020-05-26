@@ -1,50 +1,8 @@
-use std::error;
 use std::fmt;
-use std::io::{self, Write};
-use std::result;
+use std::io::Write;
 
 use crate::grid::{self, Connect, Erase};
 use crate::terminal;
-
-type Result = result::Result<(), CanvasError>;
-
-#[derive(Debug)]
-pub enum CanvasError {
-    Fmt(fmt::Error),
-    Io(io::Error),
-}
-
-impl error::Error for CanvasError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        match self {
-            CanvasError::Fmt(e) => Some(e),
-            CanvasError::Io(e) => Some(e),
-        }
-    }
-}
-
-impl fmt::Display for CanvasError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let msg = match self {
-            CanvasError::Fmt(_) => "failed to format message to stream",
-            CanvasError::Io(_) => "failed to perform I/O operation",
-        };
-
-        write!(f, "could not update canvas; {}", msg)
-    }
-}
-
-impl From<fmt::Error> for CanvasError {
-    fn from(fmt_error: fmt::Error) -> Self {
-        CanvasError::Fmt(fmt_error)
-    }
-}
-
-impl From<io::Error> for CanvasError {
-    fn from(io_error: io::Error) -> Self {
-        CanvasError::Io(io_error)
-    }
-}
 
 pub enum Style {
     Plot,
@@ -107,7 +65,7 @@ where
         self.style = style;
     }
 
-    pub fn update(&mut self, event: terminal::MouseEvent) -> Result {
+    pub fn update(&mut self, event: terminal::MouseEvent) -> crate::Result {
         let terminal::MouseEvent { action, pos } = event;
         match (action, pos.x, pos.y) {
             (terminal::MouseAction::Press, x, y) => self.cursor.move_to(x, y),
@@ -136,7 +94,7 @@ where
         Ok(())
     }
 
-    pub fn draw(&mut self) -> Result {
+    pub fn draw(&mut self) -> crate::Result {
         for segment in &self.base {
             write!(self.writer, "{}", segment)?;
         }
@@ -149,14 +107,14 @@ where
         self.base.clone()
     }
 
-    pub fn undo(&mut self) -> Result {
+    pub fn undo(&mut self) -> crate::Result {
         if let Some(mut segment) = self.base.pop() {
             segment.erase(&mut self.writer)?;
         }
         Ok(())
     }
 
-    pub fn clear(&mut self) -> Result {
+    pub fn clear(&mut self) -> crate::Result {
         for segment in &mut self.base {
             segment.erase(&mut self.writer)?;
         }

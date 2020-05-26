@@ -1,73 +1,12 @@
-use std::error;
-use std::fmt;
 use std::io;
 
 use tui::{self, grid};
 
 use crate::export;
 
-#[derive(Debug)]
-pub enum Error {
-    NotTTY,
-    IoProblem(io::Error),
-    TerminalOperationFailed(tui::Error),
-    CanvasUpdateFailed(tui::CanvasError),
-    ExportFailed(export::Error),
-}
-
-impl error::Error for Error {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        match self {
-            Error::NotTTY => None,
-            Error::IoProblem(e) => Some(e),
-            Error::TerminalOperationFailed(e) => Some(e),
-            Error::CanvasUpdateFailed(e) => Some(e),
-            Error::ExportFailed(e) => Some(e),
-        }
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let msg = match self {
-            Error::NotTTY => "stream is not a TTY".to_string(),
-            Error::IoProblem(e) => format!("failed to perform I/O operation; {}", e),
-            Error::TerminalOperationFailed(e) => format!("{}", e),
-            Error::CanvasUpdateFailed(e) => format!("{}", e),
-            Error::ExportFailed(e) => format!("{}", e),
-        };
-
-        write!(f, "Application error: {}", msg)
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(io_error: io::Error) -> Self {
-        Error::IoProblem(io_error)
-    }
-}
-
-impl From<tui::Error> for Error {
-    fn from(terminal_error: tui::Error) -> Self {
-        Error::TerminalOperationFailed(terminal_error)
-    }
-}
-
-impl From<tui::CanvasError> for Error {
-    fn from(canvas_error: tui::CanvasError) -> Self {
-        Error::CanvasUpdateFailed(canvas_error)
-    }
-}
-
-impl From<export::Error> for Error {
-    fn from(save_error: export::Error) -> Self {
-        Error::ExportFailed(save_error)
-    }
-}
-
-pub fn run() -> Result<(), Error> {
+pub fn run() -> crate::Result {
     if !tui::is_tty() {
-        return Err(Error::NotTTY);
+        return Err("stream is not TTY".into());
     }
 
     let mut terminal = tui::Terminal::default();

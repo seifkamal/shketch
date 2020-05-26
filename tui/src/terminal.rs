@@ -2,36 +2,16 @@ use std::convert::{TryFrom, TryInto};
 use std::error;
 use std::fmt;
 use std::io;
-use std::result;
 
+use crossterm::{event, ErrorKind};
+use crossterm::ExecutableCommand;
 use crossterm::terminal;
 use crossterm::tty::IsTty;
-use crossterm::ExecutableCommand;
-use crossterm::{event, ErrorKind};
 
 use crate::grid;
 
 pub fn is_tty() -> bool {
     io::stdout().is_tty() && io::stdin().is_tty()
-}
-
-type Result = result::Result<(), Error>;
-
-#[derive(Debug)]
-pub struct Error(crossterm::ErrorKind);
-
-impl error::Error for Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<crossterm::ErrorKind> for Error {
-    fn from(error: ErrorKind) -> Self {
-        Self(error)
-    }
 }
 
 pub struct Terminal {
@@ -43,7 +23,7 @@ impl Terminal {
         Self { stdout }
     }
 
-    pub fn wipe(&mut self) -> Result {
+    pub fn wipe(&mut self) -> crate::Result {
         self.stdout.execute(terminal::EnterAlternateScreen)?;
         self.stdout.execute(crossterm::cursor::Hide)?;
         self.stdout.execute(event::EnableMouseCapture)?;
@@ -51,7 +31,7 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn restore(&mut self) -> Result {
+    pub fn restore(&mut self) -> crate::Result {
         self.clear()?;
         self.stdout.execute(event::DisableMouseCapture)?;
         self.stdout.execute(crossterm::cursor::Show)?;
@@ -59,7 +39,7 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn clear(&mut self) -> Result {
+    pub fn clear(&mut self) -> crate::Result {
         self.stdout.execute(terminal::Clear(terminal::ClearType::All))?;
         Ok(())
     }
@@ -72,8 +52,8 @@ impl Terminal {
         terminal::disable_raw_mode().unwrap();
     }
 
-    pub fn read_event(&self) -> result::Result<Event, InputError> {
-        event::read().unwrap().try_into()
+    pub fn read_event(&self) -> Result<Event, InputError> {
+        event::read()?.try_into()
     }
 }
 
@@ -88,16 +68,24 @@ pub enum InputError {
     UnsupportedEvent,
     UnsupportedKeyEvent,
     UnsupportedMouseEvent,
+    UnknownError(crossterm::ErrorKind),
 }
 
 impl error::Error for InputError {}
 
+impl From<crossterm::ErrorKind> for InputError {
+    fn from(ct_error: ErrorKind) -> Self {
+        InputError::UnknownError(ct_error)
+    }
+}
+
 impl fmt::Display for InputError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            InputError::UnsupportedKeyEvent |
+            InputError::UnsupportedMouseEvent |
             InputError::UnsupportedEvent => write!(f, "unsupported input event"),
-            InputError::UnsupportedKeyEvent => write!(f, "unsupported input key event"),
-            InputError::UnsupportedMouseEvent => write!(f, "unsupported input mouse event"),
+            InputError::UnknownError(e) => write!(f, "some error occurred; {}", e),
         }
     }
 }
@@ -110,7 +98,7 @@ pub enum Event {
 impl TryFrom<event::Event> for Event {
     type Error = InputError;
 
-    fn try_from(event: event::Event) -> result::Result<Self, Self::Error> {
+    fn try_from(event: event::Event) -> Result<Self, Self::Error> {
         match event {
             event::Event::Key(ke) => Ok(Event::Key(ke.try_into()?)),
             event::Event::Mouse(me) => Ok(Event::Mouse(me.try_into()?)),
@@ -132,7 +120,7 @@ pub enum KeyModifier {
 impl TryFrom<event::KeyEvent> for KeyEvent {
     type Error = InputError;
 
-    fn try_from(event: event::KeyEvent) -> result::Result<Self, Self::Error> {
+    fn try_from(event: event::KeyEvent) -> Result<Self, Self::Error> {
         let event::KeyEvent { code, modifiers } = event;
         match code {
             event::KeyCode::Char(char) => Ok(Self {
@@ -167,7 +155,7 @@ pub enum MouseAction {
 impl TryFrom<event::MouseEvent> for MouseEvent {
     type Error = InputError;
 
-    fn try_from(event: event::MouseEvent) -> result::Result<Self, Self::Error> {
+    fn try_from(event: event::MouseEvent) -> Result<Self, Self::Error> {
         let mouse = |x, y, action| Ok(MouseEvent::new(action, grid::Point::new(x, y)));
         match event {
             event::MouseEvent::Down(_, x, y, _) => mouse(x, y, MouseAction::Press),
