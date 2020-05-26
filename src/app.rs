@@ -19,20 +19,22 @@ pub fn run() -> crate::Result {
         loop {
             match terminal.read_event().unwrap() {
                 terminal::Event::Mouse(me) => canvas.update(me)?,
-                terminal::Event::Key(terminal::KeyEvent { char, modifier }) => match (char, modifier) {
-                    ('q', _) => break,
-                    ('u', _) => canvas.undo()?,
-                    ('k', _) => canvas.clear()?,
-                    ('s', Some(terminal::KeyModifier::Ctrl)) => {
-                        let blueprint: grid::Segment = canvas.snapshot().iter().sum();
-                        match save_file_name {
-                            Some(ref name) => export::to_file_as(&blueprint, name)?,
-                            None => save_file_name = Some(export::to_file(&blueprint)?),
+                terminal::Event::Key(terminal::KeyEvent { char, modifier }) => {
+                    match (char, modifier) {
+                        ('q', _) => break,
+                        ('u', _) => canvas.undo()?,
+                        ('k', _) => canvas.clear()?,
+                        ('s', Some(terminal::KeyModifier::Ctrl)) => {
+                            let blueprint: grid::Segment = canvas.snapshot().iter().sum();
+                            match save_file_name {
+                                Some(ref name) => export::to_file_as(&blueprint, name)?,
+                                None => save_file_name = Some(export::to_file(&blueprint)?),
+                            }
                         }
+                        (n, _) if n.is_digit(10) => canvas.alt_style(n.into()),
+                        _ => {}
                     }
-                    (n, _) if n.is_digit(10) => canvas.alt_style(n.into()),
-                    _ => {}
-                },
+                }
             }
 
             canvas.draw()?;

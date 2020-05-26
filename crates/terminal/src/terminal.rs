@@ -4,10 +4,10 @@ use std::fmt;
 use std::io;
 use std::result;
 
-use crossterm::{event, ErrorKind};
-use crossterm::ExecutableCommand;
 use crossterm::terminal;
 use crossterm::tty::IsTty;
+use crossterm::ExecutableCommand;
+use crossterm::{event, ErrorKind};
 
 type SomeResult<T = ()> = result::Result<T, Box<dyn error::Error>>;
 type ExecResult<'a> = SomeResult<&'a mut Terminal>;
@@ -100,9 +100,9 @@ impl From<crossterm::ErrorKind> for InputError {
 impl fmt::Display for InputError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InputError::UnsupportedKeyEvent |
-            InputError::UnsupportedMouseEvent |
-            InputError::UnsupportedEvent => write!(f, "unsupported input event"),
+            InputError::UnsupportedKeyEvent
+            | InputError::UnsupportedMouseEvent
+            | InputError::UnsupportedEvent => write!(f, "unsupported input event"),
             InputError::UnknownError(e) => write!(f, "some error occurred; {}", e),
         }
     }
