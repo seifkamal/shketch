@@ -6,7 +6,6 @@ use std::result;
 use std::time;
 
 use crossterm::event;
-use crossterm::style;
 use crossterm::terminal;
 use crossterm::tty::IsTty;
 use crossterm::{ErrorKind, ExecutableCommand};
@@ -17,8 +16,6 @@ type ExecResult<'a> = SomeResult<&'a mut Terminal>;
 pub fn is_tty() -> bool {
     io::stdout().is_tty() && io::stdin().is_tty()
 }
-
-pub type Color = style::Color;
 
 pub struct Terminal {
     stdout: io::Stdout,
@@ -74,21 +71,6 @@ impl Terminal {
 
     pub fn disable_mouse_capture(&mut self) -> ExecResult {
         self.stdout.execute(event::DisableMouseCapture)?;
-        Ok(self)
-    }
-
-    pub fn set_bg_color(&mut self, color: Color) -> ExecResult {
-        self.stdout.execute(style::SetBackgroundColor(color))?;
-        Ok(self)
-    }
-
-    pub fn set_fg_color(&mut self, color: Color) -> ExecResult {
-        self.stdout.execute(style::SetForegroundColor(color))?;
-        Ok(self)
-    }
-
-    pub fn reset_colors(&mut self) -> ExecResult {
-        self.stdout.execute(style::ResetColor)?;
         Ok(self)
     }
 

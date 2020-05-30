@@ -37,14 +37,15 @@ impl Erase for Cell {
 #[derive(Debug, Default, Clone)]
 pub struct Segment {
     cells: Vec<Cell>,
+    format: terminal::Format,
 }
 
 impl Segment {
     pub fn new() -> Self {
-        Self { cells: Vec::new() }
+        Self { cells: Vec::new(), format: Default::default() }
     }
 
-    pub fn from_str(start: path::Point, str: &str) -> Self {
+    pub fn from_str(start: path::Point, str: &str, format: terminal::Format) -> Self {
         let mut cells = Vec::new();
         let mut cursor = start;
         for char in str.as_bytes() {
@@ -52,7 +53,7 @@ impl Segment {
             cursor.move_right();
         }
 
-        Self { cells }
+        Self { cells, format }
     }
 
     pub fn add(&mut self, cell: Cell) {
@@ -81,18 +82,6 @@ impl Segment {
                 y_s.max().expect("could not determine max segment y"),
             ),
         ))
-    }
-}
-
-impl From<Vec<Cell>> for Segment {
-    fn from(cells: Vec<Cell>) -> Self {
-        Self { cells }
-    }
-}
-
-impl From<Segment> for Vec<Cell> {
-    fn from(segment: Segment) -> Self {
-        segment.cells
     }
 }
 
@@ -144,9 +133,11 @@ impl ops::AddAssign for Segment {
 
 impl fmt::Display for Segment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.format)?;
         for cell in &self.cells {
             write!(f, "{}", cell)?;
         }
+        write!(f, "{}", terminal::RESET_COLOR)?;
         Ok(())
     }
 }

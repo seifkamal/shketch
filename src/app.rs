@@ -32,16 +32,16 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
     let mut save_file_name: Option<String> = None;
     let mut canvas = grid::Canvas::new(io::stdout(), grid::Tracer::default());
     let toolbar = {
-        let item = |x, y, text| grid::Segment::from_str((x, y).into(), text);
-        let mut toolbar = grid::Segment::new();
+        let format = terminal::Format::new(terminal::Color::White, terminal::Color::Black);
+        let item = |x, y, text| grid::Segment::from_str((x, y).into(), text, format);
         // Actions
-        toolbar += item(1, 1, "Exit (q)");
+        let mut toolbar = item(1, 1, "Exit (q)");
         toolbar += item(15, 1, "Clear (k)");
         toolbar += item(30, 1, "Undo (u)");
         toolbar += item(45, 1, "Save (Ctrl+s)");
         // Tools
-        toolbar += item(1, 2, "Brush (1)");
-        toolbar += item(15, 2, "Ruler (2)");
+        toolbar += item(1, 2, "Plot (1)");
+        toolbar += item(15, 2, "Line (2)");
         toolbar
     };
 
@@ -50,7 +50,8 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
             Ok(event) => {
                 if let Some(event) = event {
                     match event {
-                        terminal::Event::Mouse(me) => canvas.update(me)?,
+                        // Reserve toolbar space
+                        terminal::Event::Mouse(event) if event.pos.1 > 3 => canvas.update(event)?,
                         terminal::Event::Key(terminal::KeyEvent { char, modifier }) => {
                             match (char, modifier) {
                                 ('q', _) => break,
@@ -63,19 +64,17 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                         None => save_file_name = Some(export::to_file(&blueprint)?),
                                     }
                                 }
-                                (n, _) if n.is_digit(10) => canvas.alt_style(n.into()),
+                                ('1', _) => canvas.alt_style(grid::Style::Plot),
+                                ('2', _) => canvas.alt_style(grid::Style::Line),
                                 _ => {}
                             }
                         }
+                        _ => {}
                     }
                 }
 
                 canvas.draw()?;
-
-                terminal.set_bg_color(terminal::Color::White)?;
-                terminal.set_fg_color(terminal::Color::Black)?;
                 canvas.overlay(&toolbar)?;
-                terminal.reset_colors()?;
             }
             Err(terminal::InputError::UnknownError(error)) => return Err(error.into()),
             Err(terminal::InputError::UnsupportedEvent) => {}

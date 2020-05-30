@@ -13,15 +13,6 @@ pub enum Style {
     Line,
 }
 
-impl From<char> for Style {
-    fn from(char: char) -> Self {
-        match char {
-            '2' => Style::Line,
-            _ => Style::Plot,
-        }
-    }
-}
-
 impl Default for Style {
     fn default() -> Self {
         Style::Plot
@@ -46,8 +37,6 @@ where
     W: Write,
     B: Connect,
 {
-    const TOOLBAR_BOUNDARY: u16 = 3;
-
     pub fn new(writer: W, brush: B) -> Self {
         Self {
             writer,
@@ -64,27 +53,19 @@ where
     }
 
     pub fn update(&mut self, event: terminal::MouseEvent) -> Result {
-        let terminal::MouseEvent { pos: (x, y), action } = event;
-        match (action, x, y) {
-            (terminal::MouseAction::Press, x, y) => self.cursor.move_to(x, y),
-            (terminal::MouseAction::Drag, x, y) => {
-                // Reserve toolbar space
-                if y < Self::TOOLBAR_BOUNDARY {
-                    return Ok(());
+        match (event.action, event.pos) {
+            (terminal::MouseAction::Press, (x, y)) => self.cursor.move_to(x, y),
+            (terminal::MouseAction::Drag, (x, y)) => match self.style {
+                Style::Plot => {
+                    self.sketch += self.brush.connect(self.cursor, (x, y).into());
+                    self.cursor.move_to(x, y);
                 }
-
-                match self.style {
-                    Style::Plot => {
-                        self.sketch += self.brush.connect(self.cursor, (x, y).into());
-                        self.cursor.move_to(x, y);
-                    }
-                    Style::Line => {
-                        self.sketch.erase(&mut self.writer)?;
-                        self.sketch = self.brush.connect(self.cursor, (x, y).into());
-                    }
+                Style::Line => {
+                    self.sketch.erase(&mut self.writer)?;
+                    self.sketch = self.brush.connect(self.cursor, (x, y).into());
                 }
-            }
-            (terminal::MouseAction::Release, ..) => {
+            },
+            (terminal::MouseAction::Release, _) => {
                 self.base.push(self.sketch.clone());
                 self.sketch.clear();
             }
