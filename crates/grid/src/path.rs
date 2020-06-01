@@ -96,22 +96,17 @@ impl Default for CharSet {
     }
 }
 
-pub trait Connect {
-    fn connect(&self, from: Point, to: Point) -> unit::Segment;
-}
-
+#[derive(Debug, Default)]
 pub struct Tracer {
     char_set: CharSet,
 }
 
-impl Default for Tracer {
-    fn default() -> Self {
-        Self { char_set: CharSet::default() }
+impl Tracer {
+    pub fn new(char_set: CharSet) -> Self {
+        Self { char_set }
     }
-}
 
-impl Connect for Tracer {
-    fn connect(&self, from: Point, to: Point) -> unit::Segment {
+    pub fn connect(&self, from: Point, to: Point) -> unit::Segment {
         let mut segment = unit::Segment::new();
         let mut cursor = from;
 

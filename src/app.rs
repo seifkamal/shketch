@@ -1,4 +1,7 @@
+use std::fmt;
 use std::io::{self, Write};
+
+use grid::Erase;
 
 use crate::export;
 
@@ -29,23 +32,33 @@ pub fn launch() -> crate::Result {
 }
 
 fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
-    let mut canvas = grid::Canvas::new(io::stdout(), grid::Tracer::default());
     let mut save_file_name: Option<String> = None;
     let mut toolbar = menu::ToolBar::new();
     let mut screen = io::stdout();
+
+    let mut canvas = Canvas::new();
+    let mut style = Style::default();
+    let mut sketch = grid::Segment::new();
+    let brush = grid::Tracer::default();
 
     loop {
         match terminal.read_event() {
             Ok(event) => {
                 if let Some(event) = event {
                     match event {
-                        // Reserve toolbar space
-                        terminal::Event::Mouse(event) if event.pos.1 > 3 => canvas.update(event)?,
                         terminal::Event::Key(terminal::KeyEvent { char, modifier }) => {
                             match (char, modifier) {
                                 ('q', _) => break,
-                                ('u', _) => canvas.undo()?,
-                                ('k', _) => canvas.clear()?,
+                                ('u', _) => {
+                                    if let Some(mut segment) = canvas.undo() {
+                                        segment.erase(&mut screen)?;
+                                    }
+                                }
+                                ('k', _) => {
+                                    canvas.clear();
+                                    sketch.clear();
+                                    terminal.clear()?;
+                                }
                                 ('s', Some(terminal::KeyModifier::Ctrl)) => {
                                     let blueprint: grid::Segment = canvas.snapshot().iter().sum();
                                     match save_file_name {
@@ -54,23 +67,43 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                     }
                                 }
                                 (n, _) if n.is_digit(10) => {
-                                    let style = match n {
-                                        '2' => grid::Style::Line,
-                                        _ => grid::Style::Plot,
+                                    style = match n {
+                                        '2' => Style::Line,
+                                        _ => Style::Plot,
                                     };
 
-                                    canvas.alt_style(style);
                                     toolbar.highlight_tool(style);
                                 }
                                 _ => {}
+                            }
+                        }
+                        // Reserve toolbar space
+                        terminal::Event::Mouse(event) if event.pos.1 > 3 => {
+                            match (event.action, event.pos) {
+                                (terminal::MouseAction::Press, (x, y)) => {
+                                    canvas.cursor.move_to(x, y)
+                                }
+                                (terminal::MouseAction::Drag, (x, y)) => match style {
+                                    Style::Plot => {
+                                        sketch += brush.connect(canvas.cursor, (x, y).into());
+                                        canvas.cursor.move_to(x, y);
+                                    }
+                                    Style::Line => {
+                                        sketch.erase(&mut screen)?;
+                                        sketch = brush.connect(canvas.cursor, (x, y).into());
+                                    }
+                                },
+                                (terminal::MouseAction::Release, _) => {
+                                    canvas.add(sketch.clone());
+                                    sketch.clear();
+                                }
                             }
                         }
                         _ => {}
                     }
                 }
 
-                write!(screen, "{}", canvas)?;
-                write!(screen, "{}", toolbar)?;
+                write!(screen, "{}{}{}", canvas, sketch, toolbar)?;
                 screen.flush()?;
             }
             Err(terminal::InputError::UnknownError(error)) => return Err(error.into()),
@@ -79,6 +112,52 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
     }
 
     Ok(())
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+enum Style {
+    Plot,
+    Line,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Style::Plot
+    }
+}
+
+#[derive(Debug, Default)]
+struct Canvas {
+    cursor: grid::Point,
+    design: Vec<grid::Segment>,
+}
+
+impl Canvas {
+    pub fn new() -> Self {
+        Self { design: Vec::new(), cursor: Default::default() }
+    }
+
+    pub fn add(&mut self, segment: grid::Segment) {
+        self.design.push(segment)
+    }
+
+    pub fn undo(&mut self) -> Option<grid::Segment> {
+        self.design.pop()
+    }
+
+    pub fn clear(&mut self) {
+        self.design.iter_mut().for_each(|segment| segment.clear());
+    }
+
+    pub fn snapshot(&self) -> Vec<grid::Segment> {
+        self.design.clone()
+    }
+}
+
+impl fmt::Display for Canvas {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.design.iter().try_for_each(|segment| write!(f, "{}", segment))
+    }
 }
 
 mod menu {
@@ -97,7 +176,7 @@ mod menu {
 
     pub(super) struct ToolBar {
         actions: grid::Segment,
-        tools: HashMap<grid::Style, grid::Segment>,
+        tools: HashMap<super::Style, grid::Segment>,
     }
 
     impl ToolBar {
@@ -111,20 +190,21 @@ mod menu {
             .iter()
             .sum();
 
-            let mut tools: HashMap<grid::Style, grid::Segment> = HashMap::new();
-            tools.insert(grid::Style::Plot, str_to_segment((1, 2), "Plot (1)"));
-            tools.insert(grid::Style::Line, str_to_segment((15, 2), "Line (2)"));
+            let mut tools: HashMap<super::Style, grid::Segment> = HashMap::new();
+            tools.insert(super::Style::Plot, str_to_segment((1, 2), "Plot (1)"));
+            tools.insert(super::Style::Line, str_to_segment((15, 2), "Line (2)"));
 
-            let mut bar = Self { actions, tools };
-            bar.highlight_tool(Default::default());
-            bar
+            let mut toolbar = Self { actions, tools };
+            toolbar.highlight_tool(Default::default());
+            toolbar
         }
 
-        pub fn highlight_tool(&mut self, tool: grid::Style) {
+        pub fn highlight_tool(&mut self, tool: super::Style) {
             for (style, segment) in &mut self.tools {
-                match *style == tool {
-                    true => segment.set_format(HIGHLIGHT_FORMAT),
-                    false => segment.set_format(Default::default()),
+                if *style == tool {
+                    segment.set_format(HIGHLIGHT_FORMAT);
+                } else {
+                    segment.set_format(Default::default());
                 }
             }
         }
@@ -133,7 +213,7 @@ mod menu {
     impl fmt::Display for ToolBar {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "{}", self.actions)?;
-            for (_, segment) in &self.tools {
+            for segment in self.tools.values() {
                 write!(f, "{}", segment)?;
             }
             Ok(())
