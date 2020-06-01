@@ -35,13 +35,13 @@ pub fn launch() -> crate::Result {
 fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
     let mut screen = io::stdout();
     let mut canvas = canvas::Canvas::new();
-    let mut toolbar = menu::ToolBar::new();
-    let mut file_name: Option<String> = None;
-
-    let brush = grid::Tracer::default();
     let mut sketch = grid::Segment::new();
+    let mut toolbar = menu::ToolBar::new();
     let mut tool = canvas::Tool::default();
+    let mut file_name: Option<String> = None;
     let mut file_name_print = grid::Segment::new();
+
+    let tracer = grid::Tracer::default();
 
     loop {
         match terminal.read_event() {
@@ -99,12 +99,12 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                 }
                                 (terminal::MouseAction::Drag, (x, y)) => match tool {
                                     canvas::Tool::Plot => {
-                                        sketch += brush.connect(canvas.cursor, (x, y).into());
+                                        sketch += tracer.connect(canvas.cursor, (x, y).into());
                                         canvas.cursor.move_to(x, y);
                                     }
                                     canvas::Tool::Line => {
                                         sketch.erase(&mut screen)?;
-                                        sketch = brush.connect(canvas.cursor, (x, y).into());
+                                        sketch = tracer.connect(canvas.cursor, (x, y).into());
                                     }
                                 },
                                 (terminal::MouseAction::Release, _) => {
