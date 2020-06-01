@@ -8,6 +8,7 @@ use crate::unit::{self, Erase};
 
 type Result<T = ()> = result::Result<T, Box<dyn error::Error>>;
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Style {
     Plot,
     Line,
@@ -70,21 +71,6 @@ where
                 self.sketch.clear();
             }
         }
-        Ok(())
-    }
-
-    pub fn draw(&mut self) -> Result {
-        for segment in &self.base {
-            write!(self.writer, "{}", segment)?;
-        }
-        write!(self.writer, "{}", self.sketch)?;
-        self.writer.flush()?;
-        Ok(())
-    }
-
-    pub fn overlay(&mut self, segment: &unit::Segment) -> Result {
-        write!(self.writer, "{}", segment)?;
-        self.writer.flush()?;
         Ok(())
     }
 

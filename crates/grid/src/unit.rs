@@ -64,6 +64,10 @@ impl Segment {
         self.cells.clear();
     }
 
+    pub fn set_format(&mut self, format: terminal::Format) {
+        self.format = format;
+    }
+
     pub fn boundaries(&self) -> Option<(path::Point, path::Point)> {
         if self.cells.is_empty() {
             return None;
@@ -137,7 +141,7 @@ impl fmt::Display for Segment {
         for cell in &self.cells {
             write!(f, "{}", cell)?;
         }
-        write!(f, "{}", terminal::RESET_COLOR)?;
+        write!(f, "{}", terminal::RESET_FORMAT)?;
         Ok(())
     }
 }

@@ -5,7 +5,7 @@ use crossterm::style;
 pub type Color = style::Color;
 
 #[rustfmt::skip]
-pub static RESET_COLOR: Format = Format {
+pub static RESET_FORMAT: Format = Format {
     bg_color: Color::Reset,
     fg_color: Color::Reset,
 };
@@ -24,7 +24,7 @@ impl Format {
 
 impl Default for Format {
     fn default() -> Self {
-        RESET_COLOR
+        RESET_FORMAT
     }
 }
 
