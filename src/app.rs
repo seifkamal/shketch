@@ -36,11 +36,12 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
     let mut screen = io::stdout();
     let mut canvas = canvas::Canvas::new();
     let mut toolbar = menu::ToolBar::new();
-    let mut save_file_name: Option<String> = None;
+    let mut file_name: Option<String> = None;
 
     let brush = grid::Tracer::default();
     let mut sketch = grid::Segment::new();
     let mut tool = canvas::Tool::default();
+    let mut file_name_print = grid::Segment::new();
 
     loop {
         match terminal.read_event() {
@@ -62,9 +63,21 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                 }
                                 ('s', Some(terminal::KeyModifier::Ctrl)) => {
                                     let blueprint: grid::Segment = canvas.snapshot().iter().sum();
-                                    match save_file_name {
+                                    match file_name {
                                         Some(ref name) => export::to_file_as(blueprint, name)?,
-                                        None => save_file_name = Some(export::to_file(blueprint)?),
+                                        None => {
+                                            let name = export::to_file(blueprint)?;
+                                            file_name_print = grid::Segment::from_str(
+                                                (1, 300).into(),
+                                                &name,
+                                                terminal::Format::new(
+                                                    terminal::Color::Black,
+                                                    terminal::Color::Green,
+                                                ),
+                                            );
+
+                                            file_name = Some(name);
+                                        }
                                     }
                                 }
                                 (n, _) if n.is_digit(10) => {
@@ -104,7 +117,7 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                     }
                 }
 
-                write!(screen, "{}{}{}", canvas, sketch, toolbar)?;
+                write!(screen, "{}{}{}{}", canvas, sketch, toolbar, file_name_print)?;
                 screen.flush()?;
             }
             Err(terminal::InputError::UnknownError(error)) => return Err(error.into()),
