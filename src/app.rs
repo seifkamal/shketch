@@ -1,7 +1,7 @@
 use std::fmt;
 use std::io::{self, Write};
 
-use grid::Erase;
+use terminal::grid::{self, Erase};
 
 use crate::export;
 
@@ -32,13 +32,13 @@ pub fn launch() -> crate::Result {
 }
 
 fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
-    let mut save_file_name: Option<String> = None;
-    let mut toolbar = menu::ToolBar::new();
     let mut screen = io::stdout();
-
     let mut canvas = Canvas::new();
-    let mut style = Style::default();
+    let mut toolbar = menu::ToolBar::new();
+    let mut save_file_name: Option<String> = None;
+
     let mut sketch = grid::Segment::new();
+    let mut style = Style::default();
     let brush = grid::Tracer::default();
 
     loop {
@@ -163,6 +163,8 @@ impl fmt::Display for Canvas {
 mod menu {
     use std::collections::HashMap;
     use std::fmt;
+
+    use terminal::grid;
 
     #[rustfmt::skip]
     static HIGHLIGHT_FORMAT: terminal::Format = terminal::Format {

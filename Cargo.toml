@@ -5,11 +5,9 @@ authors = ["Seif Kamal <seifskm@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-grid = { path = "crates/grid" }
 terminal = { path = "crates/terminal" }
 
 [workspace]
 members = [
-    "crates/grid",
     "crates/terminal",
 ]
