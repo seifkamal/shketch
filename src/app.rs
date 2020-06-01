@@ -1,9 +1,10 @@
-use std::fmt;
 use std::io::{self, Write};
 
 use terminal::grid::{self, Erase};
 
+use crate::canvas;
 use crate::export;
+use crate::menu;
 
 pub fn launch() -> crate::Result {
     if !terminal::is_tty() {
@@ -33,13 +34,13 @@ pub fn launch() -> crate::Result {
 
 fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
     let mut screen = io::stdout();
-    let mut canvas = Canvas::new();
+    let mut canvas = canvas::Canvas::new();
     let mut toolbar = menu::ToolBar::new();
     let mut save_file_name: Option<String> = None;
 
-    let mut sketch = grid::Segment::new();
-    let mut style = Style::default();
     let brush = grid::Tracer::default();
+    let mut sketch = grid::Segment::new();
+    let mut tool = canvas::Tool::default();
 
     loop {
         match terminal.read_event() {
@@ -62,17 +63,17 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                 ('s', Some(terminal::KeyModifier::Ctrl)) => {
                                     let blueprint: grid::Segment = canvas.snapshot().iter().sum();
                                     match save_file_name {
-                                        Some(ref name) => export::to_file_as(&blueprint, name)?,
-                                        None => save_file_name = Some(export::to_file(&blueprint)?),
+                                        Some(ref name) => export::to_file_as(blueprint, name)?,
+                                        None => save_file_name = Some(export::to_file(blueprint)?),
                                     }
                                 }
                                 (n, _) if n.is_digit(10) => {
-                                    style = match n {
-                                        '2' => Style::Line,
-                                        _ => Style::Plot,
+                                    tool = match n {
+                                        '2' => canvas::Tool::Line,
+                                        _ => canvas::Tool::Plot,
                                     };
 
-                                    toolbar.highlight_tool(style);
+                                    toolbar.highlight_tool(tool);
                                 }
                                 _ => {}
                             }
@@ -83,12 +84,12 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                 (terminal::MouseAction::Press, (x, y)) => {
                                     canvas.cursor.move_to(x, y)
                                 }
-                                (terminal::MouseAction::Drag, (x, y)) => match style {
-                                    Style::Plot => {
+                                (terminal::MouseAction::Drag, (x, y)) => match tool {
+                                    canvas::Tool::Plot => {
                                         sketch += brush.connect(canvas.cursor, (x, y).into());
                                         canvas.cursor.move_to(x, y);
                                     }
-                                    Style::Line => {
+                                    canvas::Tool::Line => {
                                         sketch.erase(&mut screen)?;
                                         sketch = brush.connect(canvas.cursor, (x, y).into());
                                     }
@@ -112,113 +113,4 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
     }
 
     Ok(())
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-enum Style {
-    Plot,
-    Line,
-}
-
-impl Default for Style {
-    fn default() -> Self {
-        Style::Plot
-    }
-}
-
-#[derive(Debug, Default)]
-struct Canvas {
-    cursor: grid::Point,
-    design: Vec<grid::Segment>,
-}
-
-impl Canvas {
-    pub fn new() -> Self {
-        Self { design: Vec::new(), cursor: Default::default() }
-    }
-
-    pub fn add(&mut self, segment: grid::Segment) {
-        self.design.push(segment)
-    }
-
-    pub fn undo(&mut self) -> Option<grid::Segment> {
-        self.design.pop()
-    }
-
-    pub fn clear(&mut self) {
-        self.design.iter_mut().for_each(|segment| segment.clear());
-    }
-
-    pub fn snapshot(&self) -> Vec<grid::Segment> {
-        self.design.clone()
-    }
-}
-
-impl fmt::Display for Canvas {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.design.iter().try_for_each(|segment| write!(f, "{}", segment))
-    }
-}
-
-mod menu {
-    use std::collections::HashMap;
-    use std::fmt;
-
-    use terminal::grid;
-
-    #[rustfmt::skip]
-    static HIGHLIGHT_FORMAT: terminal::Format = terminal::Format {
-        bg_color: terminal::Color::White,
-        fg_color: terminal::Color::Black,
-    };
-
-    fn str_to_segment((x, y): (u16, u16), text: &str) -> grid::Segment {
-        grid::Segment::from_str(grid::Point::new(x, y), text, Default::default())
-    }
-
-    pub(super) struct ToolBar {
-        actions: grid::Segment,
-        tools: HashMap<super::Style, grid::Segment>,
-    }
-
-    impl ToolBar {
-        pub fn new() -> Self {
-            let actions: grid::Segment = vec![
-                str_to_segment((1, 1), "Exit (q)"),
-                str_to_segment((15, 1), "Clear (k)"),
-                str_to_segment((30, 1), "Undo (u)"),
-                str_to_segment((45, 1), "Save (Ctrl+s)"),
-            ]
-            .iter()
-            .sum();
-
-            let mut tools: HashMap<super::Style, grid::Segment> = HashMap::new();
-            tools.insert(super::Style::Plot, str_to_segment((1, 2), "Plot (1)"));
-            tools.insert(super::Style::Line, str_to_segment((15, 2), "Line (2)"));
-
-            let mut toolbar = Self { actions, tools };
-            toolbar.highlight_tool(Default::default());
-            toolbar
-        }
-
-        pub fn highlight_tool(&mut self, tool: super::Style) {
-            for (style, segment) in &mut self.tools {
-                if *style == tool {
-                    segment.set_format(HIGHLIGHT_FORMAT);
-                } else {
-                    segment.set_format(Default::default());
-                }
-            }
-        }
-    }
-
-    impl fmt::Display for ToolBar {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{}", self.actions)?;
-            for segment in self.tools.values() {
-                write!(f, "{}", segment)?;
-            }
-            Ok(())
-        }
-    }
 }
