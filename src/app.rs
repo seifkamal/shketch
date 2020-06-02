@@ -99,12 +99,12 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                 }
                                 (terminal::MouseAction::Drag, (x, y)) => match tool {
                                     canvas::Tool::Plot => {
-                                        sketch += tracer.connect(canvas.cursor, (x, y).into());
+                                        sketch += tracer.trace(canvas.cursor, (x, y).into());
                                         canvas.cursor.move_to(x, y);
                                     }
                                     canvas::Tool::Line => {
                                         sketch.erase(&mut screen)?;
-                                        sketch = tracer.connect(canvas.cursor, (x, y).into());
+                                        sketch = tracer.trace(canvas.cursor, (x, y).into());
                                     }
                                 },
                                 (terminal::MouseAction::Release, _) => {

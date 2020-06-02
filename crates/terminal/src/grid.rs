@@ -259,7 +259,7 @@ impl Tracer {
         Self { char_set }
     }
 
-    pub fn connect(&self, from: Point, to: Point) -> Segment {
+    pub fn trace(&self, from: Point, to: Point) -> Segment {
         let mut segment = Segment::new();
         let mut cursor = from;
 
