@@ -53,7 +53,7 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                 ('q', _) => break,
                                 ('u', _) => {
                                     if let Some(mut segment) = canvas.undo() {
-                                        segment.erase(&mut screen)?;
+                                        screen.erase(&mut segment)?;
                                     }
                                 }
                                 ('k', _) => {
@@ -103,7 +103,7 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                         canvas.cursor.move_to(x, y);
                                     }
                                     canvas::Tool::Line => {
-                                        sketch.erase(&mut screen)?;
+                                        screen.erase(&mut sketch)?;
                                         sketch = tracer.trace(canvas.cursor, (x, y).into());
                                     }
                                 },

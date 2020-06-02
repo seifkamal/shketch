@@ -57,10 +57,6 @@ impl fmt::Display for Point {
     }
 }
 
-pub trait Erase {
-    fn erase(&mut self, writer: &mut impl Write) -> io::Result<()>;
-}
-
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Cell {
     pos: Point,
@@ -71,18 +67,15 @@ impl Cell {
     pub fn new(pos: Point, content: char) -> Self {
         Self { pos, content }
     }
+
+    pub fn clear(&mut self) {
+        self.content = ' ';
+    }
 }
 
 impl fmt::Display for Cell {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}{}", self.pos, self.content)
-    }
-}
-
-impl Erase for Cell {
-    fn erase(&mut self, writer: &mut impl Write) -> io::Result<()> {
-        self.content = ' ';
-        write!(writer, "{}", self)
     }
 }
 
@@ -198,12 +191,14 @@ impl fmt::Display for Segment {
     }
 }
 
-impl Erase for Segment {
-    fn erase(&mut self, writer: &mut impl Write) -> io::Result<()> {
-        for cell in &mut self.cells {
-            cell.erase(writer)?;
-        }
-        Ok(())
+pub trait Erase {
+    fn erase(&mut self, segment: &mut Segment) -> io::Result<()>;
+}
+
+impl<W: Write> Erase for W {
+    fn erase(&mut self, segment: &mut Segment) -> io::Result<()> {
+        segment.cells.iter_mut().for_each(|cell| cell.clear());
+        write!(self, "{}", segment)
     }
 }
 
