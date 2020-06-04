@@ -30,6 +30,7 @@ impl ToolBar {
         let mut tools: HashMap<canvas::Tool, grid::Segment> = HashMap::new();
         tools.insert(canvas::Tool::Plot, str_to_segment((1, 2), "Plot (1)"));
         tools.insert(canvas::Tool::Line, str_to_segment((15, 2), "Line (2)"));
+        tools.insert(canvas::Tool::Erase, str_to_segment((30, 2), "Erase (3)"));
 
         let mut toolbar = Self { actions, tools };
         toolbar.highlight_tool(Default::default());

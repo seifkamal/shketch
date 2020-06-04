@@ -6,6 +6,7 @@ use terminal::grid;
 pub enum Tool {
     Plot,
     Line,
+    Erase,
 }
 
 impl Default for Tool {

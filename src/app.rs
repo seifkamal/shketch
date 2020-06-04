@@ -82,6 +82,7 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                 }
                                 (n, _) if n.is_digit(10) => {
                                     tool = match n {
+                                        '3' => canvas::Tool::Erase,
                                         '2' => canvas::Tool::Line,
                                         _ => canvas::Tool::Plot,
                                     };
@@ -105,6 +106,9 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
                                     canvas::Tool::Line => {
                                         screen.erase(&mut sketch)?;
                                         sketch = tracer.trace(canvas.cursor, (x, y).into());
+                                    }
+                                    canvas::Tool::Erase => {
+                                        sketch.add(grid::Cell::new((x, y).into(), ' '));
                                     }
                                 },
                                 (terminal::MouseAction::Release, _) => {
