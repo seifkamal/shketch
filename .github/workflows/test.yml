@@ -17,9 +17,16 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
     - uses: actions/checkout@v2
+    - if: runner.OS == 'macOS'
+      name: Setup Darwin Toolchain
+      run: |
+        rustup component add clippy-preview
+        rustup component add rustfmt-preview
     - name: Build
       run: cargo build
     - name: Test
-      run: cargo test && cargo clippy
+      run: cargo test
     - name: Lint
-      run: rustup component add rustfmt-preview && cargo fmt -- --check
+      run: |
+        cargo clippy
+        cargo fmt -- --check
