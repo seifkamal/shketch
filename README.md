@@ -1,3 +1,5 @@
+![Build](https://github.com/safe-k/shketch/workflows/Build/badge.svg)
+
 # shketch
 
 ```text
