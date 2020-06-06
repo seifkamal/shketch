@@ -204,13 +204,13 @@ impl<W: Write> Erase for W {
 
 #[derive(Debug)]
 pub struct CharSet {
-    stationary: char,
-    up: char,
-    down: char,
-    left: char,
-    right: char,
-    diagonal_back: char,
-    diagonal_forward: char,
+    pub stationary: char,
+    pub up: char,
+    pub down: char,
+    pub left: char,
+    pub right: char,
+    pub backward_diagonal: char,
+    pub forward_diagonal: char,
 }
 
 impl CharSet {
@@ -219,12 +219,12 @@ impl CharSet {
         let Point { x: cx, y: cy } = from;
 
         match (x, y) {
-            (x, y) if cx == x && cy < y => self.up,
-            (x, y) if cx == x && cy > y => self.down,
-            (x, y) if cx < x && cy == y => self.left,
-            (x, y) if cx > x && cy == y => self.right,
-            (x, y) if (cx > x && cy > y) || (cx < x && cy < y) => self.diagonal_back,
-            (x, y) if (cx > x && cy < y) || (cx < x && cy > y) => self.diagonal_forward,
+            (x, y) if cx == x && cy > y => self.up,
+            (x, y) if cx == x && cy < y => self.down,
+            (x, y) if cx > x && cy == y => self.left,
+            (x, y) if cx < x && cy == y => self.right,
+            (x, y) if (cx > x && cy > y) || (cx < x && cy < y) => self.backward_diagonal,
+            (x, y) if (cx > x && cy < y) || (cx < x && cy > y) => self.forward_diagonal,
             _ => self.stationary,
         }
     }
@@ -238,8 +238,8 @@ impl Default for CharSet {
             down: '|',
             left: '_',
             right: '_',
-            diagonal_back: '\\',
-            diagonal_forward: '/',
+            backward_diagonal: '\\',
+            forward_diagonal: '/',
         }
     }
 }

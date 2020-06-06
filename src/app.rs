@@ -6,7 +6,17 @@ use crate::canvas;
 use crate::export;
 use crate::menu;
 
-pub fn launch() -> crate::Result {
+pub struct Opts {
+    char_set: grid::CharSet,
+}
+
+impl Opts {
+    pub fn new(char_set: grid::CharSet) -> Self {
+        Self { char_set }
+    }
+}
+
+pub fn launch(opts: Opts) -> crate::Result {
     if !terminal::is_tty() {
         return Err("stream is not TTY".into());
     }
@@ -20,7 +30,7 @@ pub fn launch() -> crate::Result {
         .hide_cursor()?
         .clear()?;
 
-    let result = run_canvas(&mut terminal);
+    let result = run_canvas(&mut terminal, opts.char_set);
 
     terminal
         .clear()?
@@ -32,7 +42,7 @@ pub fn launch() -> crate::Result {
     result
 }
 
-fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
+fn run_canvas(terminal: &mut terminal::Terminal, char_set: grid::CharSet) -> crate::Result {
     let mut screen = io::stdout();
     let mut canvas = canvas::Canvas::new();
     let mut sketch = grid::Segment::new();
@@ -41,7 +51,7 @@ fn run_canvas(terminal: &mut terminal::Terminal) -> crate::Result {
     let mut file_name: Option<String> = None;
     let mut file_name_print = grid::Segment::new();
 
-    let tracer = grid::Tracer::default();
+    let tracer = grid::Tracer::new(char_set);
 
     loop {
         match terminal.read_event() {
