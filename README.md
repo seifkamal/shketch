@@ -1,4 +1,4 @@
-![Build](https://github.com/safe-k/shketch/workflows/Build/badge.svg)
+![Build](https://github.com/seifkamal/shketch/workflows/Build/badge.svg)
 
 # shketch
 
@@ -9,7 +9,7 @@ A command line ASCII drawing tool.
 ### Cargo
 
 ```shell script
-cargo install --git https://github.com/safe-k/shketch
+cargo install --git https://github.com/seifkamal/shketch
 ```
 
 ## Usage
